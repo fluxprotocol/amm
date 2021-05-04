@@ -11,7 +11,6 @@ use near_sdk::{
     near_bindgen,
     Promise,
     PanicOnDefault,
-    serde_json,
     AccountId,
     env
 };
@@ -24,13 +23,14 @@ mod logger;
 mod constants;
 mod outcome_token;
 mod pool_factory;
-mod msg_structs;
 mod resolution_escrow;
 mod market;
 mod gov; 
+mod fungible_token_receiver;
 pub mod collateral_whitelist; // pub for integration tests 
 pub mod math; // pub for integration tests
 
+use crate::fungible_token_receiver::{BuyArgs, AddLiquidityArgs};
 use crate::helper::*;
 use crate::market::Market;
 use crate::pool::Pool;
@@ -66,7 +66,7 @@ impl AMMContract {
         tokens: Vec<collateral_whitelist::Token>, 
     ) -> Self {
         assert!(!env::state_exists(), "ERR_CONTRACT_IS_INITIALIZED");
-        let mut collateral_whitelist: Whitelist = Whitelist::new(tokens);
+        let collateral_whitelist: Whitelist = Whitelist::new(tokens);
 
         logger::log_whitelist(&collateral_whitelist);
 
@@ -77,115 +77,10 @@ impl AMMContract {
             paused: false
         }
     }
-
-    /**
-     * @notice a callback function only callable by the collateral token for this market
-     * @param sender_id the sender of the original transaction
-     * @param amount of tokens attached to this callback call
-     * @param msg can be a string of any type, in this case we expect a stringified json object
-     * @returns the amount of tokens that were not spend
-     */
-    #[payable]
-    pub fn ft_on_transfer(
-        &mut self,
-        sender_id: AccountId,
-        amount: U128,
-        msg: String,
-    ) -> U128 {
-        self.assert_unpaused();
-        let amount: u128 = amount.into();
-        assert!(amount > 0, "ERR_ZERO_AMOUNT");
-
-        let parsed_msg: msg_structs::InitStruct = serde_json::from_str(msg.as_str()).expect("ERR_INCORRECT_JSON");
-
-        match parsed_msg.function.as_str() {
-            "add_liquidity" => self.add_liquidity(&sender_id, amount, parsed_msg.args), 
-            "buy" => self.buy(&sender_id, amount, parsed_msg.args),
-            _ => panic!("ERR_UNKNOWN_FUNCTION")
-        };
-
-        0.into()
-    }
-
-
 }
 
 /*** Private methods ***/
 impl AMMContract {
-    /**
-     * @notice get and return a certain market, panics if the market doesn't exist
-     * @returns the market
-     */
-    fn get_market_expect(&self, market_id: U64) -> Market {
-        self.markets.get(market_id.into()).expect("ERR_NO_MARKET")
-    }
-
-    /**
-     * @notice add liquidity to a pool
-     * @param sender the sender of the original transfer_call
-     * @param total_in total amount of collateral to add to the market
-     * @param json string of `AddLiquidity` args
-     */
-    fn add_liquidity(
-        &mut self,
-        sender: &AccountId,
-        total_in: u128,
-        args: serde_json::Value,
-    ) {
-        let parsed_args: msg_structs::AddLiquidity = msg_structs::from_args(args);
-        let weights_u128: Option<Vec<u128>> = match parsed_args.weight_indication {
-            Some(weight_indication) => {
-                Some(weight_indication
-                    .iter()
-                    .map(|weight| { u128::from(*weight) })
-                    .collect()
-                )
-            },
-            None => None
-        };
-           
-        let mut market = self.markets.get(parsed_args.market_id.into()).expect("ERR_NO_MARKET");
-        assert!(!market.finalized, "ERR_FINALIZED_MARKET");
-        assert!(market.end_time > ns_to_ms(env::block_timestamp()), "ERR_MARKET_ENDED");
-        assert_collateral_token(&market.pool.collateral_token_id);
-        
-        market.pool.add_liquidity(
-            &sender,
-            total_in,
-            weights_u128
-        );
-        self.markets.replace(parsed_args.market_id.into(), &market);
-    }
-
-
-    /**
-     * @notice buy an outcome token
-     * @param sender the sender of the original transfer_call
-     * @param total_in total amount of collateral to use for purchasing
-     * @param json string of `AddLiquidity` args
-     */
-    fn buy(
-        &mut self,
-        sender: &AccountId,
-        collateral_in: u128, 
-        args: serde_json::Value,
-    ) {
-        let parsed_args: msg_structs::Buy = msg_structs::from_args(args);
-        let mut market = self.markets.get(parsed_args.market_id.into()).expect("ERR_NO_MARKET");
-        assert!(!market.finalized, "ERR_FINALIZED_MARKET");
-        assert!(market.end_time > ns_to_ms(env::block_timestamp()), "ERR_MARKET_ENDED");
-        assert_collateral_token(&market.pool.collateral_token_id);
-        
-        market.pool.buy(
-            &sender,
-            collateral_in,
-            parsed_args.outcome_target,
-            parsed_args.min_shares_out.into()
-        );
-
-        self.markets.replace(parsed_args.market_id.into(), &market);
-    }
-
     /**
      * @notice refunds any cleared up or overpaid storage to original sender, also checks if the sender added enough deposit to cover storage
      * @param initial_storage is the storage at the beginning of the function call

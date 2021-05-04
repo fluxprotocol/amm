@@ -13,14 +13,7 @@ fn test_valid_market_resolution() {
     let buy_amt = to_token_denom(1);
     let weights = calc_weights_from_price(vec![target_price, target_price]);
     
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&alice, seed_amount, add_liquidity_args);
+    ft_transfer_call(&alice, seed_amount, compose_add_liquidity_args(market_id, Some(weights)));
 
     let payout_num = vec![U128(0), U128(to_token_denom(1))];
     
@@ -50,32 +43,12 @@ fn test_valid_market_payout() {
     let buy_amt = to_token_denom(1);
     let weights = calc_weights_from_price(vec![target_price, target_price]);
 
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&alice, seed_amount, add_liquidity_args);
+    ft_transfer_call(&alice, seed_amount, compose_add_liquidity_args(market_id, Some(weights)));
 
     let payout_num = vec![U128(0), U128(to_token_denom(1))];
-    let buy_a_args = json!({
-        "function": "buy",
-        "args": {
-            "market_id": market_id,
-            "outcome_target": 0,
-            "min_shares_out": U128(to_token_denom(8) / 10)
-        }
-    }).to_string();
-    let buy_b_args = json!({
-        "function": "buy",
-        "args": {
-            "market_id": market_id,
-            "outcome_target": 1,
-            "min_shares_out": U128(to_token_denom(8) / 10)
-        }
-    }).to_string();
+    let buy_a_args = compose_buy_args(market_id, 0, U128(to_token_denom(8) / 10));
+    let buy_b_args = compose_buy_args(market_id, 1, U128(to_token_denom(8) / 10));
+
     ft_transfer_call(&bob, buy_amt, buy_a_args.to_string());
     ft_transfer_call(&bob, buy_amt, buy_b_args.to_string());
     ft_transfer_call(&bob, buy_amt, buy_a_args.to_string());
@@ -144,14 +117,7 @@ fn test_invalid_market_payout() {
         // Create market
         let market_id = create_market(&lp, &amm, 2, Some(U128(0)));
         
-        let add_liquidity_args = json!({
-            "function": "add_liquidity",
-            "args": {
-                "market_id": market_id,
-                "weight_indication": weights
-            }
-        }).to_string();
-        ft_transfer_call(&lp, seed_amount, add_liquidity_args);
+        ft_transfer_call(&lp, seed_amount, compose_add_liquidity_args(market_id, Some(weights)));
 
         let amm_final_balance: u128 = ft_balance_of(&master_account, &"amm".to_string()).into();
         assert_eq!(amm_final_balance, seed_amount);
@@ -249,14 +215,7 @@ fn payout_lp_no_exit() {
         // Create market
         let market_id = create_market(&lp, &amm, 2, Some(swap_fee()));
 
-        let add_liquidity_args = json!({
-            "function": "add_liquidity",
-            "args": {
-                "market_id": market_id,
-                "weight_indication": weights
-            }
-        }).to_string();
-        ft_transfer_call(&lp, seed_amount, add_liquidity_args);
+        ft_transfer_call(&lp, seed_amount, compose_add_liquidity_args(market_id, Some(weights)));
 
         let buy_a_args = json!({
             "function": "buy",

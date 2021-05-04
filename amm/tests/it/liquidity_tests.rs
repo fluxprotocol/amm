@@ -13,14 +13,8 @@ fn add_liquidity_even_liq_test() {
     let seed_amount = to_token_denom(10);
     let half = U128(to_token_denom(5) / 10);
     let weights = vec![half, half];
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&alice, seed_amount, add_liquidity_args);
+
+    ft_transfer_call(&alice, seed_amount, compose_add_liquidity_args(market_id, Some(weights)));
 
     let pool_token_balance: U128 = view!(amm.get_pool_token_balance(market_id, &alice.account_id())).unwrap_json();
     assert_eq!(pool_token_balance, U128(seed_amount));
@@ -29,13 +23,7 @@ fn add_liquidity_even_liq_test() {
     let amm_collateral_balance = ft_balance_of(&alice, &"amm".to_string());
     assert_eq!(amm_collateral_balance, U128(seed_amount));
 
-    let join_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-        }
-    }).to_string();
-    ft_transfer_call(&bob, seed_amount, join_args);
+    ft_transfer_call(&bob, seed_amount, compose_add_liquidity_args(market_id, None));
 
     let pool_token_balance_after_join: U128 = view!(amm.get_pool_token_balance(market_id, &bob.account_id())).unwrap_json();
     assert_eq!(pool_token_balance_after_join, U128(to_token_denom(10)));
@@ -62,14 +50,7 @@ fn add_liquidity_uneven_liq_test() {
     let weights = calc_weights_from_price(vec![target_price_a, target_price_b_c,target_price_b_c]);
     let seed_amount = to_token_denom(100);
 
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&alice, seed_amount, add_liquidity_args);
+    ft_transfer_call(&alice, seed_amount, compose_add_liquidity_args(market_id, Some(weights)));
 
     let price_0: U128 = view!(amm.get_spot_price_sans_fee(market_id, 0)).unwrap_json();
     let price_1: U128 = view!(amm.get_spot_price_sans_fee(market_id, 1)).unwrap_json();
@@ -91,14 +72,8 @@ fn add_liquidity_uneven_liq_test() {
 
 
     let creator_pool_token_balance: U128 = view!(amm.get_pool_token_balance(market_id, &alice.account_id())).unwrap_json();
-    // Bob joins pool
-    let join_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-        }
-    }).to_string();
-    ft_transfer_call(&bob, seed_amount, join_args);
+
+    ft_transfer_call(&bob, seed_amount, compose_add_liquidity_args(market_id, None));
     
 
     let joiner_share_balance_a: U128 = view!(amm.get_share_balance(&bob.account_id(), market_id, 0)).unwrap_json();
@@ -129,26 +104,13 @@ fn multiple_pool_exits_test() {
 
     let half = U128(to_token_denom(5) / 10);
     let weights = Some(vec![half, half]);
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&bob, seed_amount, add_liquidity_args);
+
+    ft_transfer_call(&bob, seed_amount, compose_add_liquidity_args(market_id, weights));
 
     let pool_token_balance: U128 = view!(amm.get_pool_token_balance(market_id, &bob.account_id())).unwrap_json();
     assert_eq!(pool_token_balance, U128(seed_amount));
 
-    let join_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-        }
-    }).to_string();
-    ft_transfer_call(&alice, join_amount0, join_args.to_string());
-
+    ft_transfer_call(&alice, join_amount0, compose_add_liquidity_args(market_id, None));
 
     let buy_args = json!({
         "function": "buy",
@@ -170,7 +132,7 @@ fn multiple_pool_exits_test() {
     let buy_res = ft_transfer_call(&alice, buy_amount, buy_args);
     let buy_res = ft_transfer_call(&alice, buy_amount, buy_args2);
 
-    ft_transfer_call(&alice, join_amount1, join_args);
+    ft_transfer_call(&alice, join_amount1, compose_add_liquidity_args(market_id, None));
     let alice_pool_token_balance_pre_exit: U128 = view!(amm.get_pool_token_balance(market_id, &alice.account_id())).unwrap_json();
 
 
@@ -216,14 +178,7 @@ fn join_zero_liq_test() {
     let half = U128(to_token_denom(5) / 10);
     let weights = Some(vec![half, half]);
 
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&alice, seed_amount, add_liquidity_args);
+    ft_transfer_call(&alice, seed_amount, compose_add_liquidity_args(market_id, weights));
 
     let pool_token_balance: U128 = view!(amm.get_pool_token_balance(market_id, &alice.account_id())).unwrap_json();
     assert_eq!(pool_token_balance, U128(seed_amount));
@@ -234,14 +189,7 @@ fn join_zero_liq_test() {
         deposit = STORAGE_AMOUNT
     );
 
-    let join_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    let join_res = ft_transfer_call(&alice, join_amount0, join_args.to_string());
+    let join_res = ft_transfer_call(&alice, join_amount0, compose_add_liquidity_args(market_id, None));
 }
 
 #[test]
@@ -261,15 +209,7 @@ fn add_liquidity_redeem() {
     let half = U128(to_token_denom(5) / 10);
     let weights = vec![half, half];
 
-    // Add liquidity
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&bob, seed_amount, add_liquidity_args);
+    ft_transfer_call(&bob, seed_amount, compose_add_liquidity_args(market_id, Some(weights)));
 
     // Exit pool
     let bob_exit_res = call!(
@@ -313,14 +253,7 @@ fn liquidity_exit_scene() {
 
     let weights = Some(vec![U128(70000000), U128(30000000)]);
 
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&alice, seed_amount, add_liquidity_args.to_string());
+    ft_transfer_call(&alice, seed_amount, compose_add_liquidity_args(market_id, weights));
 
     let pool_token_balance: U128 = view!(amm.get_pool_token_balance(market_id, &alice.account_id())).unwrap_json();
     assert_eq!(pool_token_balance, U128(seed_amount));
@@ -368,14 +301,7 @@ fn liquidity_exit_after_swap() {
 
     let weights = Some(vec![U128(50), U128(50)]);
 
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&alice, seed_amount, add_liquidity_args.to_string());
+    ft_transfer_call(&alice, seed_amount, compose_add_liquidity_args(market_id, weights));
 
     let pool_token_balance: U128 = view!(amm.get_pool_token_balance(market_id, &alice.account_id())).unwrap_json();
     assert_eq!(pool_token_balance, U128(seed_amount));

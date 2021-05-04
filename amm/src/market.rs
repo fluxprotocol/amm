@@ -401,3 +401,77 @@ impl AMMContract {
         }
     }
 }
+
+impl AMMContract {
+    /**
+     * @notice get and return a certain market, panics if the market doesn't exist
+     * @returns the market
+     */
+    pub fn get_market_expect(&self, market_id: U64) -> Market {
+        self.markets.get(market_id.into()).expect("ERR_NO_MARKET")
+    }
+
+    /**
+     * @notice add liquidity to a pool
+     * @param sender the sender of the original transfer_call
+     * @param total_in total amount of collateral to add to the market
+     * @param json string of `AddLiquidity` args
+     */
+    pub fn add_liquidity(
+        &mut self,
+        sender: &AccountId,
+        total_in: u128,
+        args: AddLiquidityArgs,
+    ) {
+        let weights_u128: Option<Vec<u128>> = match args.weight_indication {
+            Some(weight_indication) => {
+                Some(weight_indication
+                    .iter()
+                    .map(|weight| { u128::from(*weight) })
+                    .collect()
+                )
+            },
+            None => None
+        };
+           
+        let mut market = self.markets.get(args.market_id.into()).expect("ERR_NO_MARKET");
+        assert!(!market.finalized, "ERR_FINALIZED_MARKET");
+        assert!(market.end_time > ns_to_ms(env::block_timestamp()), "ERR_MARKET_ENDED");
+        assert_collateral_token(&market.pool.collateral_token_id);
+        
+        market.pool.add_liquidity(
+            &sender,
+            total_in,
+            weights_u128
+        );
+        self.markets.replace(args.market_id.into(), &market);
+    }
+
+
+    /**
+     * @notice buy an outcome token
+     * @param sender the sender of the original transfer_call
+     * @param total_in total amount of collateral to use for purchasing
+     * @param json string of `AddLiquidity` args
+     */
+    pub fn buy(
+        &mut self,
+        sender: &AccountId,
+        collateral_in: u128, 
+        args: BuyArgs,
+    ) {
+        let mut market = self.markets.get(args.market_id.into()).expect("ERR_NO_MARKET");
+        assert!(!market.finalized, "ERR_FINALIZED_MARKET");
+        assert!(market.end_time > ns_to_ms(env::block_timestamp()), "ERR_MARKET_ENDED");
+        assert_collateral_token(&market.pool.collateral_token_id);
+        
+        market.pool.buy(
+            &sender,
+            collateral_in,
+            args.outcome_target,
+            args.min_shares_out.into()
+        );
+
+        self.markets.replace(args.market_id.into(), &market);
+    }
+}

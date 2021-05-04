@@ -114,6 +114,25 @@ pub fn init_balance() -> u128 {
     to_yocto("1000")
 }
 
+pub fn compose_add_liquidity_args(market_id: U64, weights: Option<Vec<U128>>) -> String{
+    json!({
+        "AddLiquidityArgs": {
+            "market_id": market_id,
+            "weight_indication": weights
+        }
+    }).to_string()
+}
+
+pub fn compose_buy_args(market_id: U64, outcome: u16, min_shares_out: U128) -> String{
+    json!({
+        "BuyArgs": {
+            "market_id": market_id,
+            "outcome_target": outcome,
+            "min_shares_out": min_shares_out
+        }
+    }).to_string()
+}
+
 pub fn storage_deposit(sender: &UserAccount, deposit: u128, to_register: Option<AccountId>) {
     let res = sender.call(
         PendingContractTx::new(
