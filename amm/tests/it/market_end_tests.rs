@@ -216,17 +216,7 @@ fn payout_lp_no_exit() {
         let market_id = create_market(&lp, &amm, 2, Some(swap_fee()));
 
         ft_transfer_call(&lp, seed_amount, compose_add_liquidity_args(market_id, Some(weights)));
-
-        let buy_a_args = json!({
-            "function": "buy",
-            "args": {
-                "market_id": market_id,
-                "outcome_target": 0,
-                "min_shares_out": U128(to_token_denom(8) / 10)
-            }
-        }).to_string();
-        
-        ft_transfer_call(&trader, buy_amount, buy_a_args.to_string());
+        ft_transfer_call(&trader, buy_amount, compose_buy_args(market_id, 0, U128(to_token_denom(8) / 10)));
 
         // Resolute market
         call!(

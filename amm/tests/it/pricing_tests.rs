@@ -17,29 +17,13 @@ fn pool_initial_pricing_test() {
     let even_weights = Some(vec![U128(half), U128(half)]);
     let uneven_weights = Some(vec![U128(forty), U128(sixty)]);
 
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": even_weights
-        }
-    }).to_string();
-    ft_transfer_call(&alice, seed_amount, add_liquidity_args);
+    ft_transfer_call(&alice, seed_amount, compose_add_liquidity_args(market_id, even_weights));
 
     let even_price: U128 = view!(amm.get_spot_price_sans_fee(market_id, 0)).unwrap_json();
     assert_eq!(u128::from(even_price), half);
     
     let market_id_2 = create_market(&alice, &amm, 2, Some(U128(0)));
-
-
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id_2,
-            "weight_indication": uneven_weights
-        }
-    }).to_string();
-    ft_transfer_call(&alice, seed_amount, add_liquidity_args);
+    ft_transfer_call(&alice, seed_amount, compose_add_liquidity_args(market_id_2, uneven_weights));
 
     let expected_0 = to_token_denom(6) / 10;
     let expected_1 = to_token_denom(4) / 10;
@@ -61,14 +45,7 @@ fn pricing_multi_outcome_pool_test() {
     let third = to_token_denom(1) / 3;
     let even_weights = Some(vec![U128(third), U128(third), U128(third + 1)]);
 
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": even_weights
-        }
-    }).to_string();
-    ft_transfer_call(&alice, seed_amount, add_liquidity_args);
+    ft_transfer_call(&alice, seed_amount, compose_add_liquidity_args(market_id, even_weights));
 
     let even_price: U128 = view!(
         amm.get_spot_price_sans_fee(market_id, 1)
@@ -91,14 +68,7 @@ fn pricing_multi_outcome_pool_test() {
 
     let uneven_weights = Some(vec![U128(twenty), U128(twenty), U128(sixty)]);
     
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": uneven_weights
-        }
-    }).to_string();
-    ft_transfer_call(&alice, seed_amount, add_liquidity_args);
+    ft_transfer_call(&alice, seed_amount, compose_add_liquidity_args(market_id, uneven_weights));
 
     let bal_0 = math::complex_mul_u128(token_denom(), twenty, collat);
     let bal_1 = math::complex_mul_u128(token_denom(), twenty, collat);
@@ -142,14 +112,7 @@ fn pricing_fee_test_calc() {
     let market_id = create_market(&alice, &amm, 2, Some(U128(0)));
     let weights = Some(vec![U128(half), U128(half)]);
 
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&alice, seed_amount, add_liquidity_args);
+    ft_transfer_call(&alice, seed_amount, compose_add_liquidity_args(market_id, weights));
     
     let even_price_wrapped: U128 = view!(amm.get_spot_price_sans_fee(market_id, 1)).unwrap_json();
     let swap_fee_wrapped: U128 = view!(amm.get_pool_swap_fee(market_id)).unwrap_json();

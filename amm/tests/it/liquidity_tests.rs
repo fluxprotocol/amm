@@ -112,25 +112,8 @@ fn multiple_pool_exits_test() {
 
     ft_transfer_call(&alice, join_amount0, compose_add_liquidity_args(market_id, None));
 
-    let buy_args = json!({
-        "function": "buy",
-        "args": {
-            "market_id": market_id,
-            "outcome_target": 0,
-            "min_shares_out": U128(to_token_denom(15) / 10)
-        }
-    }).to_string();
-    let buy_args2 = json!({
-        "function": "buy",
-        "args": {
-            "market_id": market_id,
-            "outcome_target": 1,
-            "min_shares_out": U128(to_token_denom(15) / 10)
-        }
-    }).to_string();
-
-    let buy_res = ft_transfer_call(&alice, buy_amount, buy_args);
-    let buy_res = ft_transfer_call(&alice, buy_amount, buy_args2);
+    let buy_res = ft_transfer_call(&alice, buy_amount, compose_buy_args(market_id, 0, U128(0)));
+    let buy_res = ft_transfer_call(&alice, buy_amount, compose_buy_args(market_id, 1, U128(0)));
 
     ft_transfer_call(&alice, join_amount1, compose_add_liquidity_args(market_id, None));
     let alice_pool_token_balance_pre_exit: U128 = view!(amm.get_pool_token_balance(market_id, &alice.account_id())).unwrap_json();
@@ -258,27 +241,11 @@ fn liquidity_exit_scene() {
     let pool_token_balance: U128 = view!(amm.get_pool_token_balance(market_id, &alice.account_id())).unwrap_json();
     assert_eq!(pool_token_balance, U128(seed_amount));
 
-    let buy_args = json!({
-        "function": "buy",
-        "args": {
-            "market_id": market_id,
-            "outcome_target": 0,
-            "min_shares_out": U128(0)
-        }
-    }).to_string();
-
+    let buy_res = ft_transfer_call(&alice, 100000000000000000, compose_buy_args(market_id, 0, U128(9)));
+    let buy_res = ft_transfer_call(&alice, 1000000000000000000000000, compose_buy_args(market_id, 0, U128(9)));
     
-    let buy_res = ft_transfer_call(&alice, 100000000000000000, buy_args.to_string());
-    let buy_res = ft_transfer_call(&alice, 1000000000000000000000000, buy_args);
-    
-    let add_more_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-        }
-    }).to_string();
-    ft_transfer_call(&alice, 1000000000000000000, add_more_liquidity_args.to_string());
-    ft_transfer_call(&alice, 1000000000000000000000000, add_more_liquidity_args);
+    ft_transfer_call(&alice, 1000000000000000000, compose_add_liquidity_args(market_id, None));
+    ft_transfer_call(&alice, 1000000000000000000000000, compose_add_liquidity_args(market_id, None));
     let pool_token_balance: U128 = view!(amm.get_pool_token_balance(market_id, &alice.account_id())).unwrap_json();
 
     let seed_exit_res = call!(
@@ -305,18 +272,8 @@ fn liquidity_exit_after_swap() {
 
     let pool_token_balance: U128 = view!(amm.get_pool_token_balance(market_id, &alice.account_id())).unwrap_json();
     assert_eq!(pool_token_balance, U128(seed_amount));
-
-    let buy_args = json!({
-        "function": "buy",
-        "args": {
-            "market_id": market_id,
-            "outcome_target": 0,
-            "min_shares_out": U128(0)
-        }
-    }).to_string();
-
     
-    let buy_res = ft_transfer_call(&alice, buy_amount, buy_args.to_string());
+   ft_transfer_call(&alice, buy_amount, compose_buy_args(market_id, 0, U128(0)));
     
 
     let seed_exit_res = call!(

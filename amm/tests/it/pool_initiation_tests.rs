@@ -13,15 +13,8 @@ fn pool_initial_state_test() {
     let seed_amount = to_token_denom(100);
     let half = to_token_denom(5) / 10;
     let weights = Some(vec![U128(half), U128(half)]);
-
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&alice, seed_amount, add_liquidity_args);
+    
+    ft_transfer_call(&alice, seed_amount, compose_add_liquidity_args(market_id, weights));
 
     let seeder_balance: u128 = ft_balance_of(&alice, &alice.account_id()).into();
     assert_eq!(seeder_balance, init_balance() - seed_amount);

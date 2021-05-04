@@ -12,14 +12,7 @@ fn swap_calc_buy_amount_test() {
     let market_id: U64 = create_market(&alice, &amm, 2, Some(U128(0)));
 
     assert_eq!(market_id, U64(0));
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&alice, seed_amount, add_liquidity_args);
+    ft_transfer_call(&alice, seed_amount, compose_add_liquidity_args(market_id, weights));
 
     let buy_amt: U128 = view!(amm.calc_buy_amount(market_id, U128(to_token_denom(1)), 0)).unwrap_json();
     assert_eq!(u128::from(buy_amt), 1909090909090909090909091);
@@ -35,15 +28,7 @@ fn swap_calc_sell_collateral_out_test() {
 
     assert_eq!(market_id, U64(0));
 
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&alice, seed_amount, add_liquidity_args);
-
+    ft_transfer_call(&alice, seed_amount, compose_add_liquidity_args(market_id, weights));
     let collat_out: U128 = view!(amm.calc_sell_collateral_out(market_id, U128(to_token_denom(1)), 0)).unwrap_json();
     assert_eq!(u128::from(collat_out), 2111111111111111111111111);
 }
@@ -60,25 +45,10 @@ fn swap_basic_buy_test() {
     assert_eq!(market_id, U64(0));
 
     let weights = Some(vec![U128(weight), U128(weight)]);
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&alice, seed_amount, add_liquidity_args);
+ 
+    ft_transfer_call(&alice, seed_amount, compose_add_liquidity_args(market_id, weights));
 
-    let buy_args = json!({
-        "function": "buy",
-        "args": {
-            "market_id": market_id,
-            "outcome_target": 0,
-            "min_shares_out": U128(to_token_denom(15) / 10)
-        }
-    }).to_string();
-
-    let buy_res = ft_transfer_call(&alice, buy_amount, buy_args);
+    ft_transfer_call(&alice, buy_amount, compose_buy_args(market_id, 0, U128(to_token_denom(15) / 10)));
 
     let seeder_balance: u128 = ft_balance_of(&alice, &alice.account_id().to_string()).into();
     assert_eq!(seeder_balance, init_balance() - seed_amount - buy_amount);
@@ -115,25 +85,8 @@ fn swap_basic_sell_test() {
     assert_eq!(market_id, U64(0));
 
     let weights = Some(vec![U128(weight), U128(weight)]);
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&alice, seed_amount, add_liquidity_args);
-
-    let buy_args = json!({
-        "function": "buy",
-        "args": {
-            "market_id": market_id,
-            "outcome_target": 0,
-            "min_shares_out": U128(to_token_denom(15) / 10)
-        }
-    }).to_string();
-
-    let buy_res = ft_transfer_call(&alice, buy_amount, buy_args);
+    ft_transfer_call(&alice, seed_amount, compose_add_liquidity_args(market_id, weights));
+    ft_transfer_call(&alice, buy_amount, compose_buy_args(market_id, 0, U128(to_token_denom(15) / 10)));
 
 
     let seeder_balance: u128 = ft_balance_of(&alice, &alice.account_id().to_string()).into();
@@ -191,30 +144,14 @@ fn swap_complex_buy_test() {
 
     assert_eq!(market_id, U64(0));
 
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": Some(weights)
-        }
-    }).to_string();
-    ft_transfer_call(&alice, seed_amount, add_liquidity_args);
+    ft_transfer_call(&alice, seed_amount, compose_add_liquidity_args(market_id, Some(weights)));
 
 
     let init_balances: Vec<U128> = view!(amm.get_pool_balances(market_id)).unwrap_json();
 
     let init_invariant = product_of(&init_balances);
 
-    
-    let buy_args = json!({
-        "function": "buy",
-        "args": {
-            "market_id": market_id,
-            "outcome_target": 0,
-            "min_shares_out": U128(to_token_denom(8) / 10)
-        }
-    }).to_string();
-    ft_transfer_call(&bob, buy_amount, buy_args);
+    ft_transfer_call(&bob, buy_amount, compose_buy_args(market_id, 0, U128(to_token_denom(15) / 10)));
 
     let post_trade_balances: Vec<U128> = view!(amm.get_pool_balances(market_id)).unwrap_json();
     let post_trade_invariant = product_of(&post_trade_balances);
@@ -237,7 +174,6 @@ fn swap_multi_sell_test() {
     // Get accounts
     let (_master_account, amm, token, lp, trader1, trader2) = init("carol".to_string());
     
-
     let precision = to_token_denom(1) / 100; // 1 token_cent precision
 
     // Get initial balances
@@ -259,31 +195,13 @@ fn swap_multi_sell_test() {
     let market_id = create_market(&lp, &amm, 2, Some(U128(0)));
 
     // Seed market
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&lp, seed_amount, add_liquidity_args);
-
+    ft_transfer_call(&lp, seed_amount, compose_add_liquidity_args(market_id, Some(weights)));
 
     let amm_final_balance: u128 = ft_balance_of(&lp, &"amm".to_string()).into();
     assert_eq!(amm_final_balance, seed_amount);
 
-    // buy 0 from trader 1 and trader 2
-    let buy_a_args = json!({
-        "function": "buy",
-        "args": {
-            "market_id": market_id,
-            "outcome_target": 0,
-            "min_shares_out": U128(to_token_denom(8) / 10)
-        }
-    }).to_string();
-
-    ft_transfer_call(&trader1, buy_amt, buy_a_args.to_string());
-    ft_transfer_call(&trader2, buy_amt, buy_a_args.to_string());
+    ft_transfer_call(&trader1, buy_amt, compose_buy_args(market_id, 0, U128(to_token_denom(8) / 10)));
+    ft_transfer_call(&trader2, buy_amt, compose_buy_args(market_id, 0, U128(to_token_denom(8) / 10)));
 
     let trader1_share_balance: U128 = view!(amm.get_share_balance(&trader1.account_id(), market_id, 0)).unwrap_json();
     let trader2_share_balance: U128 = view!(amm.get_share_balance(&trader2.account_id(), market_id, 0)).unwrap_json();
@@ -339,29 +257,12 @@ fn swap_complex_sell_with_fee_test() {
     let market_id = create_market(&lp, &amm, 2, Some(swap_fee()));
 
     // Seed market
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&lp, seed_amount, add_liquidity_args);
+    ft_transfer_call(&lp, seed_amount, compose_add_liquidity_args(market_id, Some(weights)));
 
     let amm_final_balance: u128 = ft_balance_of(&lp, &"amm".to_string()).into();
     assert_eq!(amm_final_balance, seed_amount);
 
-    // buy 0 from trader 1
-    let buy_a_args = json!({
-        "function": "buy",
-        "args": {
-            "market_id": market_id,
-            "outcome_target": 0,
-            "min_shares_out": U128(to_token_denom(8) / 10)
-        }
-    }).to_string();
-
-    ft_transfer_call(&trader1, buy_amt, buy_a_args.to_string());
+    ft_transfer_call(&trader1, buy_amt, compose_buy_args(market_id, 0, U128(0)));
 
     let trader1_share_balance: U128 = view!(amm.get_share_balance(&trader1.account_id(), market_id, 0)).unwrap_json();
     assert_eq!(trader1_share_balance, U128(expected_trader1_share_bal));
@@ -390,15 +291,7 @@ fn swap_selling_uneven_lp_shares_binary_test() {
     // Create market
     let market_id = create_market(&lp, &amm, 2, Some(swap_fee()));
 
-    // Seed market
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&lp, seed_amount, add_liquidity_args);
+    ft_transfer_call(&lp, seed_amount, compose_add_liquidity_args(market_id, Some(weights)));
 
     let outcome_balance_0: U128 = view!(amm.get_share_balance(&lp.account_id(), market_id, 0)).unwrap_json();
     let outcome_balance_1: U128 = view!(amm.get_share_balance(&lp.account_id(), market_id, 1)).unwrap_json();
@@ -427,14 +320,8 @@ fn swap_selling_uneven_lp_shares_categorical_test() {
     // Create market
     let market_id = create_market(&lp, &amm, 4, Some(swap_fee()));
 
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&lp, seed_amount, add_liquidity_args);
+    ft_transfer_call(&lp, seed_amount, compose_add_liquidity_args(market_id, Some(weights)));
+
 
     let amm_final_balance: u128 = ft_balance_of(&lp, &"amm".to_string()).into();
     assert_eq!(amm_final_balance, seed_amount);
@@ -457,27 +344,9 @@ fn redeem_collat_helper(target_price_a: U128, target_price_b: U128, token_value_
     assert_eq!(market_id, U64(0));
     let weights = calc_weights_from_price(vec![target_price_a, target_price_b]);
 
-    // add initial iquidity with unequal weights
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&alice, seed_amount, add_liquidity_args); 
+    ft_transfer_call(&alice, seed_amount, compose_add_liquidity_args(market_id, Some(weights)));
 
-    //  buy outcome target 0 tokens
-    let buy_args = json!({
-        "function": "buy",
-        "args": {
-            "market_id": market_id,
-            "outcome_target": 0,
-            "min_shares_out": U128(0)
-        }
-    }).to_string();
-
-    let buy_res = ft_transfer_call(&bob, buy_amount, buy_args);
+    let buy_res = ft_transfer_call(&bob, buy_amount, compose_buy_args(market_id, 0, U128(0)));
     let expected_target_buyer_balance = token_value_80_20;
     let expected_other_buyer_balance = 0;
 
@@ -497,26 +366,9 @@ fn redeem_collat_helper(target_price_a: U128, target_price_b: U128, token_value_
 
     // add liquidity with unequal weights reversed
     let weights = calc_weights_from_price(vec![target_price_b, target_price_a]);
-    let add_liquidity_args = json!({
-        "function": "add_liquidity",
-        "args": {
-            "market_id": market_id,
-            "weight_indication": weights
-        }
-    }).to_string();
-    ft_transfer_call(&alice, seed_amount, add_liquidity_args);
+    ft_transfer_call(&alice, seed_amount, compose_add_liquidity_args(market_id, Some(weights)));
 
-    // buy outcome target 1 tokens
-    let buy_args = json!({
-        "function": "buy",
-        "args": {
-            "market_id": market_id,
-            "outcome_target": 1,
-            "min_shares_out": U128(0)
-        }
-    }).to_string();
-
-    let buy_res = ft_transfer_call(&bob, buy_amount, buy_args);
+    let buy_res = ft_transfer_call(&bob, buy_amount, compose_buy_args(market_id, 1, U128(0)));
     let expected_target_buyer_balance = token_value_80_20;
     let expected_other_buyer_balance = token_value_80_20;
 
@@ -593,14 +445,3 @@ fn redeem_collat_with_bought_tokens_for_higher_price() {
     // bob bought 2 times, and redeemed 1.22 again (loss of 0.8 tokens)
     redeem_collat_helper(target_price_a, target_price_b, token_value_80_20);
 }
-
-// Should panic but that;s breaking atm
-// #[test]
-// fn redeem_collat_with_bought_tokens_for_lower_price() {
-//     let token_value_80_20 = 3857142857142857142857143;
-//     let target_price_a = U128(to_token_denom(20) / 100);
-//     let target_price_b = U128(to_token_denom(80) / 100);
-
-//     // bob bought 2 times, and redeemed 3.85 again (gain of 1.85 tokens)
-//     redeem_collat_helper(target_price_a, target_price_b, token_value_80_20);
-// }

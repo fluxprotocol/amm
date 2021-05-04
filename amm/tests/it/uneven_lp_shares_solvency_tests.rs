@@ -22,14 +22,7 @@ fn test_uneven_lp_shares_solvency_tests() {
         // Create market
         let market_id = create_market(&lp, &amm, 2, Some(U128(0)));
         
-        let add_liquidity_args = json!({
-            "function": "add_liquidity",
-            "args": {
-                "market_id": market_id,
-                "weight_indication": weights
-            }
-        }).to_string();
-        ft_transfer_call(&lp, seed_amount, add_liquidity_args);
+        ft_transfer_call(&lp, seed_amount, compose_add_liquidity_args(market_id, Some(weights)));
         
         // assert expected price for 0 & 1 (70 | 30)
         let price_0: U128 = view!(amm.get_spot_price_sans_fee(market_id, 0)).unwrap_json();
@@ -39,14 +32,7 @@ fn test_uneven_lp_shares_solvency_tests() {
 
 
         // Buy `buy_amount` from trader1 buy `buy_amount` from trader2
-        let buy_a_args = json!({
-            "function": "buy",
-            "args": {
-                "market_id": market_id,
-                "outcome_target": 0,
-                "min_shares_out": U128(1)
-            }
-        }).to_string();
+        let buy_a_args = compose_buy_args(market_id, 0, U128(0));
 
         // Buy some extra shares from lp accounts
         ft_transfer_call(&lp, buy_amt, buy_a_args.to_string());
