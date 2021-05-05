@@ -1,6 +1,8 @@
 use crate::*;
 use std::convert::TryInto;
 use collateral_whitelist::Token;
+use token::*;
+use near_sdk::serde_json::json;
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Market {
@@ -553,6 +555,43 @@ mod market_basic_tests {
             (10_u128.pow(24) / 50).into(), // swap fee, 2%
             None // is_scalar
         );
+    }
+
+    #[test]
+    // #[should_panic(expected = "ERR_MARKET_ENDED")]
+    fn withdraw_liquidity_after_resolution() {
+        testing_env!(get_context(alice(), 0));
+
+        let mut contract = AMMContract::init(
+            bob().try_into().unwrap(),
+            vec![collateral_whitelist::Token{account_id: "token".to_string(), decimals: 24}]
+        );
+        let mut token = Contract::new();
+
+        let market_id = contract.create_market(
+            empty_string(), // market description
+            empty_string(), // extra info
+            2, // outcomes
+            empty_string_vec(2), // outcome tags
+            empty_string_vec(2), // categories
+            1609951265967.into(), // end_time
+            1619882574000.into(), // resolution_time (~1 day after end_time)
+            "token".to_string(), // collateral_token_id
+            (10_u128.pow(24) / 50).into(), // swap fee, 2%
+            None // is_scalar
+        );
+
+        // Setup stringfied json object with add_liquidity arguments
+        let add_liquidity_args = json!({
+            "function": "add_liquidity",
+            "args": {
+                "market_id": market_id,
+                "weight_indication": vec![1, 2]
+            }
+        }).to_string();
+
+        // Call transfer call on collateral token
+        token.ft_transfer_call(alice().try_into().unwrap(), U128(100), add_liquidity_args, None);
     }
 
 }
