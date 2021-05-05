@@ -523,7 +523,7 @@ mod market_basic_tests {
             account_balance: 1000 * 10u128.pow(24),
             account_locked_balance: 0,
             storage_usage: 10u64.pow(6),
-            attached_deposit: 15600000000000000000000,
+            attached_deposit: 32900000000000000000000,
             prepaid_gas: 10u64.pow(18),
             random_seed: vec![0, 1, 2],
             is_view: false,
@@ -553,10 +553,6 @@ mod market_basic_tests {
             (10_u128.pow(24) / 50).into(), // swap fee, 2%
             None // is_scalar
         );
-        //testing_env!(get_context(alice(), 0));
     }
-
-    // #[should_panic(expected = "ERR_MARKET_ENDED")]
-    // fn withdraw_liquidity_after_resolution_time() {}
 
 }
