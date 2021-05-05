@@ -15,3 +15,23 @@ pub(crate) fn assert_collateral_token(collateral_token: &AccountId) {
 pub (crate) fn ns_to_ms(ns_timestamp: u64) -> u64 {
     ns_timestamp / 1_000_000
 }
+
+pub (crate) fn alice() -> AccountId {
+    "alice.near".to_string()
+}
+
+pub (crate) fn bob() -> AccountId {
+    "bob.near".to_string()
+}
+
+pub (crate) fn empty_string() -> String {
+    "".to_string()
+}
+
+pub (crate) fn empty_string_vec(len: u16) -> Vec<String> {
+    let mut tags: Vec<String> = vec![];
+    for i in 0..len {
+        tags.push(empty_string());
+    }
+    tags
+}
