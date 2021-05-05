@@ -28,6 +28,10 @@ mod resolution_escrow;
 mod market;
 mod gov; 
 mod fungible_token_receiver;
+mod oracle;
+mod market_creation;
+mod storage_manager;
+mod fungible_token;
 pub mod collateral_whitelist; // pub for integration tests 
 pub mod math; // pub for integration tests
 
@@ -51,7 +55,9 @@ pub struct AMMContract {
     gov: AccountId, // The gov of all markets
     markets: Vector<Market>, // Vector containing all markets where the index represents the market id
     collateral_whitelist: Whitelist, // Map a token's account id to number of decimals it's denominated in
-    paused: bool // If true certain functions are no longer callable, settable by `gov`
+    paused: bool, // If true certain functions are no longer callable, settable by `gov`
+    // Storage map
+    pub accounts: LookupMap<AccountId, Balance>,
 }
 
 #[near_bindgen]
@@ -75,7 +81,8 @@ impl AMMContract {
             gov: gov.into(),
             markets: Vector::new(b"m".to_vec()),
             collateral_whitelist: collateral_whitelist, 
-            paused: false
+            paused: false,
+            accounts: LookupMap::new(b"as".to_vec()),
         }
     }
 }
