@@ -491,27 +491,8 @@ impl AMMContract {
 mod market_basic_tests {
     use near_sdk::{ MockedBlockchain };
     use near_sdk::{ testing_env, VMContext };
+    use crate::helper::{ alice, bob, empty_string, empty_string_vec };
     use super::*;
-
-    fn alice() -> AccountId {
-        "alice.near".to_string()
-    }
-
-    fn bob() -> AccountId {
-        "bob.near".to_string()
-    }
-
-    fn empty_string() -> String {
-        "".to_string()
-    }
-
-    fn empty_string_vec(len: u16) -> Vec<String> {
-        let mut tags: Vec<String> = vec![];
-        for i in 0..len {
-            tags.push(empty_string());
-        }
-    tags
-    }
 
     fn get_context(predecessor_account_id: AccountId, timestamp: u64) -> VMContext {
         VMContext {
