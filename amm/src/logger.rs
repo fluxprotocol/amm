@@ -209,6 +209,7 @@ pub fn log_create_market(
                 "extra_info": extra_info,
                 "outcome_tags": outcome_tags,
                 "end_time": U64(market.end_time),
+                "resolution_time": U64(market.resolution_time),
                 "finalized": market.finalized,
                 "payout_numerator": market.payout_numerator,
                 "categories": categories,
