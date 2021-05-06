@@ -491,13 +491,13 @@ impl AMMContract {
 mod market_basic_tests {
     use near_sdk::{ MockedBlockchain };
     use near_sdk::{ testing_env, VMContext };
-    use crate::helper::{ alice, bob, empty_string, empty_string_vec };
+    use crate::helper::{ alice, bob, token, empty_string, empty_string_vec };
     use super::*;
 
     fn get_context(predecessor_account_id: AccountId, timestamp: u64) -> VMContext {
         VMContext {
             current_account_id: alice(),
-            signer_account_id: bob(),
+            signer_account_id: alice(),
             signer_account_pk: vec![0, 1, 2],
             predecessor_account_id,
             input: vec![],
@@ -521,7 +521,7 @@ mod market_basic_tests {
 
         let mut contract = AMMContract::init(
             bob().try_into().unwrap(),
-            vec![collateral_whitelist::Token{account_id: "token".to_string(), decimals: 24}]
+            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}]
         );
 
         contract.create_market(
@@ -532,24 +532,23 @@ mod market_basic_tests {
             empty_string_vec(2), // categories
             1609951265967.into(), // end_time
             1619882574000.into(), // resolution_time (~1 day after end_time)
-            "token".to_string(), // collateral_token_id
+            token(), // collateral_token_id
             (10_u128.pow(24) / 50).into(), // swap fee, 2%
             None // is_scalar
         );
     }
 
     #[test]
-    // #[should_panic(expected = "ERR_MARKET_ENDED")]
-    fn withdraw_liquidity_after_resolution() {
+    #[should_panic(expected = "ERR_MARKET_ENDED")]
+    fn add_liquidity_after_resolution() {
         testing_env!(get_context(alice(), 0));
 
-        let mut contract = AMMContract::init(
+        let mut amm_contract = AMMContract::init(
             bob().try_into().unwrap(),
-            vec![collateral_whitelist::Token{account_id: "token".to_string(), decimals: 24}]
+            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}]
         );
-        let mut token = Contract::new();
 
-        let market_id = contract.create_market(
+        let market_id = amm_contract.create_market(
             empty_string(), // market description
             empty_string(), // extra info
             2, // outcomes
@@ -557,22 +556,23 @@ mod market_basic_tests {
             empty_string_vec(2), // categories
             1609951265967.into(), // end_time
             1619882574000.into(), // resolution_time (~1 day after end_time)
-            "token".to_string(), // collateral_token_id
+            token(), // collateral_token_id
             (10_u128.pow(24) / 50).into(), // swap fee, 2%
             None // is_scalar
         );
 
-        // Setup stringfied json object with add_liquidity arguments
-        let add_liquidity_args = json!({
-            "function": "add_liquidity",
-            "args": {
-                "market_id": market_id,
-                "weight_indication": vec![1, 2]
-            }
-        }).to_string();
+        testing_env!(get_context(token(), ms_to_ns(1619882574000)));
 
-        // Call transfer call on collateral token
-        token.ft_transfer_call(alice().try_into().unwrap(), U128(100), add_liquidity_args, None);
+        let add_liquidity_args = AddLiquidityArgs {
+            market_id,
+            weight_indication: Some(vec![U128(2), U128(1)])
+        };
+
+        amm_contract.add_liquidity(
+            &alice(), // sender
+            10000000000000000000, // total_in
+            add_liquidity_args
+        );
     }
 
 }
