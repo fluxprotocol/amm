@@ -602,7 +602,7 @@ mod market_basic_tests {
 
     #[test]
     #[should_panic(expected = "ERR_RESOLUTION_TIME_NOT_REACHED")]
-    fn resolute_after_resolution() {
+    fn resolute_before_resolution_time() {
         testing_env!(get_context(alice(), 0));
 
         let mut contract = AMMContract::init(
@@ -623,6 +623,8 @@ mod market_basic_tests {
             None // is_scalar
         );
 
+        testing_env!(get_context(token(), 0));
+
         let add_liquidity_args = AddLiquidityArgs {
             market_id,
             weight_indication: Some(vec![U128(2), U128(1)])
@@ -634,11 +636,11 @@ mod market_basic_tests {
             add_liquidity_args
         );
 
-        testing_env!(get_context(token(), ms_to_ns(1619882574000)));
+        testing_env!(get_context(bob(), 0));
 
         contract.resolute_market(
             market_id,
-            Some(vec![U128(2), U128(1)]) // payout_numerator
+            Some(vec![U128(0), U128(1)]) // payout_numerator
         );
     }
 
