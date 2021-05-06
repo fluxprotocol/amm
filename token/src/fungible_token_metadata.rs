@@ -16,7 +16,7 @@ pub trait FungibleTokenMetadataProvider {
 }
 
 #[near_bindgen]
-impl FungibleTokenMetadataProvider for Contract {
+impl FungibleTokenMetadataProvider for TokenContract {
     fn ft_metadata() -> FungibleTokenMetadata {
         FungibleTokenMetadata {
             version: String::from("0.1.0"),
