@@ -640,7 +640,50 @@ mod market_basic_tests {
 
         contract.resolute_market(
             market_id,
-            Some(vec![U128(0), U128(1)]) // payout_numerator
+            Some(vec![U128(1000000000000000000000000), U128(0)]) // payout_numerator
+        );
+    }
+
+    #[test]
+    fn resolute_after_resolution_time() {
+        testing_env!(get_context(alice(), 0));
+
+        let mut contract = AMMContract::init(
+            bob().try_into().unwrap(),
+            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}]
+        );
+
+        let market_id = contract.create_market(
+            empty_string(), // market description
+            empty_string(), // extra info
+            2, // outcomes
+            empty_string_vec(2), // outcome tags
+            empty_string_vec(2), // categories
+            1609951265967.into(), // end_time
+            1619882574000.into(), // resolution_time (~1 day after end_time)
+            token(), // collateral_token_id
+            (10_u128.pow(24) / 50).into(), // swap fee, 2%
+            None // is_scalar
+        );
+
+        testing_env!(get_context(token(), 0));
+
+        let add_liquidity_args = AddLiquidityArgs {
+            market_id,
+            weight_indication: Some(vec![U128(2), U128(1)])
+        };
+
+        contract.add_liquidity(
+            &alice(), // sender
+            10000000000000000000, // total_in
+            add_liquidity_args
+        );
+
+        testing_env!(get_context(bob(), ms_to_ns(1619882574000)));
+
+        contract.resolute_market(
+            market_id,
+            Some(vec![U128(1000000000000000000000000), U128(0)]) // payout_numerator
         );
     }
 
