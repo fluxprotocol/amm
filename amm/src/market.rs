@@ -235,7 +235,7 @@ impl AMMContract {
         let collateral_out: u128 = collateral_out.into();
         let mut market = self.markets.get(market_id.into()).expect("ERR_NO_MARKET");
         assert!(!market.finalized, "ERR_FINALIZED_MARKET");
-        assert!(market.resolution_time > ns_to_ms(env::block_timestamp()), "ERR_MARKET_ENDED");
+        assert!(market.end_time > ns_to_ms(env::block_timestamp()), "ERR_MARKET_ENDED");
         let escrowed = market.pool.sell(
             &env::predecessor_account_id(),
             collateral_out,
@@ -355,6 +355,7 @@ impl AMMContract {
         // let initial_storage = env::storage_usage();
         let mut market = self.markets.get(market_id.into()).expect("ERR_NO_MARKET");
         assert!(!market.finalized, "ERR_IS_FINALIZED");
+        assert!(market.resolution_time <= ns_to_ms(env::block_timestamp()), "ERR_RESOLUTION_TIME_NOT_REACHED");
         match &payout_numerator {
             Some(v) => {
                 let sum = v.iter().fold(0, |s, &n| s + u128::from(n));
@@ -543,12 +544,12 @@ mod market_basic_tests {
     fn add_liquidity_after_resolution() {
         testing_env!(get_context(alice(), 0));
 
-        let mut amm_contract = AMMContract::init(
+        let mut contract = AMMContract::init(
             bob().try_into().unwrap(),
             vec![collateral_whitelist::Token{account_id: token(), decimals: 24}]
         );
 
-        let market_id = amm_contract.create_market(
+        let market_id = contract.create_market(
             empty_string(), // market description
             empty_string(), // extra info
             2, // outcomes
@@ -568,10 +569,76 @@ mod market_basic_tests {
             weight_indication: Some(vec![U128(2), U128(1)])
         };
 
-        amm_contract.add_liquidity(
+        contract.add_liquidity(
             &alice(), // sender
             10000000000000000000, // total_in
             add_liquidity_args
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "ERR_INVALID_RESOLUTION_TIME")]
+    fn invalid_resolution_time() {
+        testing_env!(get_context(alice(), 0));
+
+        let mut contract = AMMContract::init(
+            bob().try_into().unwrap(),
+            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}]
+        );
+
+        let market_id = contract.create_market(
+            empty_string(), // market description
+            empty_string(), // extra info
+            2, // outcomes
+            empty_string_vec(2), // outcome tags
+            empty_string_vec(2), // categories
+            1609951265967.into(), // end_time
+            1609951265965.into(), // resolution_time (less than end_time for err)
+            token(), // collateral_token_id
+            (10_u128.pow(24) / 50).into(), // swap fee, 2%
+            None // is_scalar
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "ERR_RESOLUTION_TIME_NOT_REACHED")]
+    fn resolute_after_resolution() {
+        testing_env!(get_context(alice(), 0));
+
+        let mut contract = AMMContract::init(
+            bob().try_into().unwrap(),
+            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}]
+        );
+
+        let market_id = contract.create_market(
+            empty_string(), // market description
+            empty_string(), // extra info
+            2, // outcomes
+            empty_string_vec(2), // outcome tags
+            empty_string_vec(2), // categories
+            1609951265967.into(), // end_time
+            1619882574000.into(), // resolution_time (~1 day after end_time)
+            token(), // collateral_token_id
+            (10_u128.pow(24) / 50).into(), // swap fee, 2%
+            None // is_scalar
+        );
+
+        let add_liquidity_args = AddLiquidityArgs {
+            market_id,
+            weight_indication: Some(vec![U128(2), U128(1)])
+        };
+
+        contract.add_liquidity(
+            &alice(), // sender
+            10000000000000000000, // total_in
+            add_liquidity_args
+        );
+
+        testing_env!(get_context(token(), ms_to_ns(1619882574000)));
+
+        contract.resolute_market(
+            market_id,
+            Some(vec![U128(2), U128(1)]) // payout_numerator
         );
     }
 
