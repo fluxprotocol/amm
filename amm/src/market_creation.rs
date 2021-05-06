@@ -18,7 +18,7 @@ pub struct OracleConfig {
 #[near_bindgen]
 impl AMMContract {
     pub fn proceed_blah(&mut self) {
-        assert_prev_promise_successful();
+        // assert_prev_promise_successful();
 
         env::log("Tralalala".as_bytes());
     }
@@ -26,7 +26,6 @@ impl AMMContract {
     pub fn proceed_market_creation(&mut self, bond_token: AccountId, bond_in: Balance, args: msg_structs::CreateMarket) -> Promise {
         assert_self();
         assert_eq!(env::promise_results_count(), 1, "ERR_PROMISE_INVALID");
-        assert_prev_promise_successful();
 
         // Maybe we don't need to check. We could also assume that
         // the oracle promise handles the validation..
@@ -47,9 +46,12 @@ impl AMMContract {
         assert!(validity_bond < bond_in, "ERR_NOT_ENOUGH_BOND");
 
         // TODO: Create a delayed data request
-        self.create_data_request(bond_token, validity_bond).then(
-            ext_self::proceed_blah(&env::current_account_id(), 0, 3_000_000_000_000)
-        )
+        self.create_data_request(bond_token, validity_bond)
+        
+        
+        // .then(
+        //     ext_self::proceed_blah(&env::current_account_id(), 0, 3_000_000_000_000)
+        // )
 
         // TODO: We need a storage manager
 
@@ -120,7 +122,7 @@ impl AMMContract {
         // TODO: We should double check the transfering process
         // Need to investigate the refunding "Refund 1 from pulse.franklinwaller2.testnet to franklinwaller2.testnet"
 
-        oracle::fetch_oracle_config("oracle.franklinwaller2.testnet")
+        oracle::fetch_oracle_config("oracle")
             .then(ext_self::proceed_market_creation(bond_token_id, bond_in, parsed_args, &env::current_account_id(), 0, 50_000_000_000_000))
     }
 }

@@ -12,18 +12,21 @@ pub fn fetch_oracle_config(oracle_contract_id: &str) -> Promise {
 
 impl AMMContract {
     pub fn create_data_request(&self, bond_token: AccountId, amount: Balance) -> Promise {
-        let oracle_contract_id = "oracle.franklinwaller2.testnet";
+        let oracle_contract_id = "oracle";
         // Should do a fungible token transfer to the oracle
-        fungible_token::fungible_token_transfer(bond_token, oracle_contract_id.to_string(), amount, Some(
+        fungible_token::fungible_token_transfer(
+            bond_token, 
+            oracle_contract_id.to_string(), 
+            amount,
             json!({
                 "NewDataRequest": {
                     // 12 hour challenge period,
-                    "challenge_period": U64(43200000000000),
-                    "target_contract": env::current_account_id(),
+                    "challenge_period": U64(2999),
+                    "target_contract": "oracle".to_string(),
                     "sources": [], 
                 },
             }).to_string()
-        ))
+        )
     }
 }
 
