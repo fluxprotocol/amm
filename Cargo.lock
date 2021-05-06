@@ -42,6 +42,7 @@ version = "0.1.0"
 dependencies = [
  "near-sdk 3.0.0",
  "near-sdk-sim 3.0.0-pre-release",
+ "oracle",
  "serde",
  "token",
  "uint 0.8.5",

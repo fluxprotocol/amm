@@ -101,7 +101,7 @@ trait FungibleTokenResolver {
 }
 
 #[near_bindgen]
-impl FungibleTokenCore for Contract {
+impl FungibleTokenCore for TokenContract {
     #[payable]
     fn ft_transfer(&mut self, receiver_id: ValidAccountId, amount: U128, memo: Option<String>) {
         assert_one_yocto();
@@ -130,8 +130,7 @@ impl FungibleTokenCore for Contract {
             receiver_id.as_ref(),
             NO_DEPOSIT,
             env::prepaid_gas() - GAS_FOR_FT_TRANSFER_CALL,
-        )
-        .then(ext_self::ft_resolve_transfer(
+        ).then(ext_self::ft_resolve_transfer(
             sender_id,
             receiver_id.into(),
             amount.into(),
@@ -151,7 +150,7 @@ impl FungibleTokenCore for Contract {
 }
 
 #[near_bindgen]
-impl FungibleTokenResolver for Contract {
+impl FungibleTokenResolver for TokenContract {
     fn ft_resolve_transfer(
         &mut self,
         sender_id: AccountId,
@@ -161,7 +160,7 @@ impl FungibleTokenResolver for Contract {
         assert_self();
         let amount: Balance = amount.into();
 
-        // Get the unused amount from the `ft_on_transfer` call result.
+        // Get the unused amount from the `ft_on_transfer` call result.    
         let unused_amount = match env::promise_result(0) {
             PromiseResult::NotReady => unreachable!(),
             PromiseResult::Successful(value) => {

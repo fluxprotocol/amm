@@ -24,7 +24,7 @@ pub trait StorageManager {
 }
 
 #[near_bindgen]
-impl StorageManager for Contract {
+impl StorageManager for TokenContract {
     #[payable]
     fn storage_deposit(&mut self, account_id: Option<ValidAccountId>) -> AccountStorageBalance {
         let amount = env::attached_deposit();

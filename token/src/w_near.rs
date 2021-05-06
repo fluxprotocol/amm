@@ -1,7 +1,7 @@
 use crate::*;
 
 #[near_bindgen]
-impl Contract {
+impl TokenContract {
     /// Deposit NEAR to mint wNEAR tokens to the predecessor account in this contract.
     /// Requirements:
     /// * The predecessor account should be registered.

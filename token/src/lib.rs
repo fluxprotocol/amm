@@ -34,7 +34,7 @@ static ALLOC: near_sdk::wee_alloc::WeeAlloc<'_> = near_sdk::wee_alloc::WeeAlloc:
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
-pub struct Contract {
+pub struct TokenContract {
     /// AccountID -> Account balance.
     pub accounts: LookupMap<AccountId, Balance>,
 
@@ -45,14 +45,14 @@ pub struct Contract {
     pub account_storage_usage: StorageUsage,
 }
 
-impl Default for Contract {
+impl Default for TokenContract {
     fn default() -> Self {
-        env::panic(b"Contract is not initialized");
+        env::panic(b"TokenContract is not initialized");
     }
 }
 
 #[near_bindgen]
-impl Contract {
+impl TokenContract {
     #[init]
     pub fn new() -> Self {
         assert!(!env::state_exists(), "Already initialized");

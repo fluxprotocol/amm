@@ -5,24 +5,26 @@ use near_sdk::borsh::{ self, BorshDeserialize, BorshSerialize };
 use near_sdk::collections::{ Vector, LookupMap };
 use near_sdk::json_types::{ ValidAccountId, U64, U128 };
 
+near_sdk::setup_alloc!();
+
 mod types;
-mod data_request;
+pub mod data_request;
 mod fungible_token_receiver;
 mod callback_args;
 mod whitelist;
-mod oracle_config;
+pub mod oracle_config;
 mod storage_manager;
 mod helpers;
 mod logger;
 
 /// Mocks
 mod mock_requestor;
-mod mock_token;
 mod mock_target_contract;
+mod fungible_token;
 
 use callback_args::*;
 
-use types::{ Timestamp };
+use types::{ Timestamp, WrappedTimestamp };
 use data_request::{ DataRequest };
 
 #[near_bindgen]
@@ -32,8 +34,6 @@ pub struct Contract {
     pub configs: Vector<oracle_config::OracleConfig>,
     pub data_requests: Vector<DataRequest>,
     pub validity_bond: U128,
-    pub stake_token: mock_token::Token,
-    pub validity_bond_token: mock_token::Token,
     // Storage map
     pub accounts: LookupMap<AccountId, Balance>
 }
@@ -61,10 +61,6 @@ impl Contract {
             data_requests: Vector::new(b"dr".to_vec()),
             validity_bond: 1.into(),
             accounts: LookupMap::new(b"a".to_vec()),
-
-            // Mock
-            stake_token: mock_token::Token::default_new(b"st".to_vec()),
-            validity_bond_token: mock_token::Token::default_new(b"vbt".to_vec()),
         }
     }
 }

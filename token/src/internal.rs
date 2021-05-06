@@ -16,7 +16,7 @@ pub(crate) fn assert_self() {
     );
 }
 
-impl Contract {
+impl TokenContract {
     pub(crate) fn internal_deposit(&mut self, account_id: &AccountId, amount: Balance) {
         let balance = self
             .accounts
