@@ -30,7 +30,7 @@ pub enum Payload {
 
 pub trait FungibleTokenReceiver {
     // @returns amount of unused tokens
-    fn ft_on_transfer(&mut self, sender_id: AccountId, amount: WrappedBalance, msg: String) -> U128;
+    fn ft_on_transfer(&mut self, sender_id: AccountId, amount: WrappedBalance, msg: String) -> WrappedBalance;
 }
 
 #[near_bindgen]
