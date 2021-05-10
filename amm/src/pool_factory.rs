@@ -1,5 +1,6 @@
 use near_sdk::AccountId;
 use crate::pool::Pool;
+use near_sdk::Balance;
 
 // TODO: remove, completely redunant function
 
@@ -11,7 +12,7 @@ pub fn new_pool(
     outcomes: u16,
     collateral_token_id: AccountId,
     collateral_decimals: u32,
-    swap_fee: u128,
+    swap_fee: Balance,
 ) -> Pool {
     Pool::new(
         pool_id,

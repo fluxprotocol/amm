@@ -38,7 +38,7 @@ impl MintableToken {
     pub fn new(
         pool_id: u64, 
         outcome_id: u16, 
-        initial_supply: u128
+        initial_supply: Balance
     ) -> Self {
         let mut accounts: LookupMap<AccountId, Balance> = LookupMap::new(format!("bt:{}:{}", pool_id, outcome_id).as_bytes().to_vec()); 
         accounts.insert(&env::current_account_id(), &initial_supply);
@@ -59,7 +59,7 @@ impl MintableToken {
     pub fn mint(
         &mut self, 
         account_id: &AccountId, 
-        amount: u128
+        amount: Balance
     ) {
         self.total_supply += amount;
         let account_balance = self.accounts.get(account_id).unwrap_or(0);
@@ -79,7 +79,7 @@ impl MintableToken {
     pub fn burn(
         &mut self, 
         account_id: &AccountId, 
-        amount: u128
+        amount: Balance
     ) {
         let mut balance = self.accounts.get(&account_id).unwrap_or(0);
 
@@ -101,7 +101,7 @@ impl MintableToken {
     pub fn deposit(
         &mut self, 
         receiver_id: &AccountId, 
-        amount: u128
+        amount: Balance
     ) {
         assert!(amount > 0, "Cannot deposit 0 or lower");
 
@@ -120,7 +120,7 @@ impl MintableToken {
     pub fn withdraw(
         &mut self, 
         sender_id: &AccountId, 
-        amount: u128
+        amount: Balance
     ) {
         let sender_balance = self.accounts.get(&sender_id).unwrap_or(0);
 
@@ -147,7 +147,7 @@ impl Default for MintableFungibleToken {
 }
 
 impl MintableFungibleToken {
-    pub fn new(pool_id: u64, outcome_id: u16, initial_supply: u128,) -> Self {
+    pub fn new(pool_id: u64, outcome_id: u16, initial_supply: Balance,) -> Self {
         Self {
             token: MintableToken::new(pool_id, outcome_id, initial_supply),
         }
@@ -161,22 +161,22 @@ impl MintableFungibleToken {
     pub fn get_balance(
         &self, 
         account_id: &AccountId
-    ) -> u128 {
+    ) -> Balance {
         self.token.accounts.get(account_id).unwrap_or(0)
     }
 
     /**
      * @returns token's total supply
      */
-    pub fn total_supply(&self) -> u128 {
+    pub fn total_supply(&self) -> Balance {
         self.token.total_supply
     }
 
-    pub fn mint(&mut self, account_id: &AccountId, amount: u128) {
+    pub fn mint(&mut self, account_id: &AccountId, amount: Balance) {
         self.token.mint(account_id, amount);
     }
 
-    pub fn burn(&mut self, account_id: &AccountId, amount: u128) {
+    pub fn burn(&mut self, account_id: &AccountId, amount: Balance) {
         self.token.burn(account_id, amount);
     }
 
@@ -187,7 +187,7 @@ impl MintableFungibleToken {
     pub fn remove_account(
         &mut self, 
         account_id: &AccountId
-    ) -> Option<u128> {
+    ) -> Option<Balance> {
         self.token.accounts.remove(account_id)
     }
 
@@ -201,7 +201,7 @@ impl MintableFungibleToken {
     pub fn transfer(
         &mut self, 
         receiver_id: &AccountId, 
-        amount: u128
+        amount: Balance
     ) {
         self.token.withdraw(&env::predecessor_account_id(), amount);
         self.token.deposit(receiver_id, amount);
@@ -217,7 +217,7 @@ impl MintableFungibleToken {
         &mut self, 
         sender: &AccountId, 
         receiver_id: &AccountId, 
-        amount: u128
+        amount: Balance
     ) {
         self.token.withdraw(sender, amount);
         self.token.deposit(receiver_id, amount);

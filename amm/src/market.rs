@@ -1,9 +1,10 @@
 use crate::*;
+use crate::types::{ Timestamp, WrappedBalance, WrappedTimestamp };
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Market {
-    pub end_time: u64, // Time when trading is halted
-    pub resolution_time: u64, // Time when the market can be resoluted
+    pub end_time: Timestamp, // Time when trading is halted
+    pub resolution_time: Timestamp, // Time when the market can be resoluted
     pub pool: Pool, // Implementation that manages the liquidity pool and swap
     pub payout_numerator: Option<Vec<U128>>, // Optional Vector that dictates how payout is done. Each payout numerator index corresponds to an outcome and shares the denomination of te collateral token for this market.
     pub finalized: bool, // If true the market has an outcome, if false the market it still undecided.
@@ -33,7 +34,7 @@ impl AMMContract {
      * @param market_id is the index of the market to retrieve data from
      * @returns the LP token's total supply for a pool
      */
-    pub fn get_pool_token_total_supply(&self, market_id: U64) -> U128 {
+    pub fn get_pool_token_total_supply(&self, market_id: U64) -> WrappedBalance {
         let market = self.get_market_expect(market_id);
         U128(market.pool.pool_token.total_supply())
     }
@@ -45,7 +46,7 @@ impl AMMContract {
     pub fn get_pool_balances(
         &self,
         market_id: U64
-    ) -> Vec<U128>{
+    ) -> Vec<WrappedBalance>{
         let market = self.get_market_expect(market_id);
         market.pool.get_pool_balances().into_iter().map(|b| b.into()).collect()
     }
@@ -59,7 +60,7 @@ impl AMMContract {
         &self, 
         market_id: U64, 
         owner_id: &AccountId
-    ) -> U128 {
+    ) -> WrappedBalance {
         let market = self.get_market_expect(market_id);
         U128(market.pool.get_pool_token_balance(owner_id))
     }
@@ -74,7 +75,7 @@ impl AMMContract {
         &self,
         market_id: U64,
         outcome: u16
-    ) -> U128 {
+    ) -> WrappedBalance {
         let market = self.get_market_expect(market_id);
         market.pool.get_spot_price_sans_fee(outcome).into()
     }
@@ -89,9 +90,9 @@ impl AMMContract {
     pub fn calc_buy_amount(
         &self,
         market_id: U64,
-        collateral_in: U128,
+        collateral_in: WrappedBalance,
         outcome_target: u16
-    ) -> U128 {
+    ) -> WrappedBalance {
         let market = self.get_market_expect(market_id);
         U128(market.pool.calc_buy_amount(collateral_in.into(), outcome_target))
     }
@@ -107,9 +108,9 @@ impl AMMContract {
     pub fn calc_sell_collateral_out(
         &self,
         market_id: U64,
-        collateral_out: U128,
+        collateral_out: WrappedBalance,
         outcome_target: u16
-    ) -> U128 {
+    ) -> WrappedBalance {
         let market = self.get_market_expect(market_id);
         U128(market.pool.calc_sell_collateral_out(collateral_out.into(), outcome_target))
     }
@@ -125,7 +126,7 @@ impl AMMContract {
         account_id: &AccountId, 
         market_id: U64, 
         outcome: u16
-    ) -> U128 {
+    ) -> WrappedBalance {
         let market = self.get_market_expect(market_id);
         U128(market.pool.get_share_balance(account_id, outcome))
     }
@@ -139,7 +140,7 @@ impl AMMContract {
         &self, 
         market_id: U64, 
         account_id: &AccountId
-    ) -> U128 {
+    ) -> WrappedBalance {
         let market = self.get_market_expect(market_id);
         U128(market.pool.get_fees_withdrawable(account_id))
     }
@@ -166,10 +167,10 @@ impl AMMContract {
         outcomes: u16,
         outcome_tags: Vec<String>,
         categories: Vec<String>,
-        end_time: U64,
-        resolution_time: U64,
+        end_time: WrappedTimestamp,
+        resolution_time: WrappedTimestamp,
         collateral_token_id: AccountId,
-        swap_fee: U128,
+        swap_fee: WrappedBalance,
         is_scalar: Option<bool>,
     ) -> U64 {
         self.assert_unpaused();
@@ -222,9 +223,9 @@ impl AMMContract {
     pub fn sell(
         &mut self,
         market_id: U64,
-        collateral_out: U128,
+        collateral_out: WrappedBalance,
         outcome_target: u16,
-        max_shares_in: U128
+        max_shares_in: WrappedBalance
     ) -> Promise {
         self.assert_unpaused();
         let initial_storage = env::storage_usage();
@@ -262,7 +263,7 @@ impl AMMContract {
     pub fn burn_outcome_tokens_redeem_collateral(
         &mut self,
         market_id: U64,
-        to_burn: U128
+        to_burn: WrappedBalance
     ) -> Promise {
         self.assert_unpaused();
         let initial_storage = env::storage_usage();
@@ -303,7 +304,7 @@ impl AMMContract {
     pub fn exit_pool(
         &mut self,
         market_id: U64,
-        total_in: U128,
+        total_in: WrappedBalance,
     ) -> PromiseOrValue<bool> {
         self.assert_unpaused();
         let initial_storage = env::storage_usage();

@@ -1,28 +1,29 @@
 use crate::*;
+use near_sdk::Balance;
 
 #[derive(BorshDeserialize, BorshSerialize)]
-pub struct OutcomeToBalanceMap(LookupMap<u16, u128>);
+pub struct OutcomeToBalanceMap(LookupMap<u16, Balance>);
 
 impl OutcomeToBalanceMap {
     pub fn new(uid: Vec<u8>) -> Self {
         Self(LookupMap::new(uid))
     }
 
-    pub fn decrement(&mut self, outcome: u16, amount: u128) -> u128 {
+    pub fn decrement(&mut self, outcome: u16, amount: Balance) -> Balance {
         let current_val = self.get(outcome);
         let new_val = current_val - amount;
         self.0.insert(&outcome, &new_val);
         new_val
     }
 
-    pub fn increment(&mut self, outcome: u16, amount: u128) -> u128 {
+    pub fn increment(&mut self, outcome: u16, amount: Balance) -> Balance {
         let current_val = self.get(outcome);
         let new_val = current_val + amount;
         self.0.insert(&outcome, &new_val);
         new_val
     }
 
-    pub fn get(&self, outcome: u16) -> u128 {
+    pub fn get(&self, outcome: u16) -> Balance {
         self.0.get(&outcome).unwrap_or(0)
     }
 }
@@ -66,8 +67,8 @@ impl ResolutionEscrows {
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct ResolutionEscrow {
     uid: String,
-    pub valid: u128,
-    pub invalid: u128,
+    pub valid: Balance,
+    pub invalid: Balance,
     lp_spent: OutcomeToBalanceMap,
     spent: OutcomeToBalanceMap,
 }
@@ -83,46 +84,46 @@ impl ResolutionEscrow {
         }
     }
 
-    pub fn get_spent(&self, outcome: u16) -> u128 {
+    pub fn get_spent(&self, outcome: u16) -> Balance {
         self.spent.get(outcome)
     }
 
-    pub fn get_lp_spent(&self, outcome: u16) -> u128 {
+    pub fn get_lp_spent(&self, outcome: u16) -> Balance {
         self.lp_spent.get(outcome)
     }
 
-    pub fn sub_from_spent(&mut self, outcome: u16, amount: u128) -> u128 {
+    pub fn sub_from_spent(&mut self, outcome: u16, amount: Balance) -> Balance {
        self.spent.decrement(outcome, amount)
     }
 
-    pub fn add_to_spent(&mut self, outcome: u16, amount: u128) -> u128 {
+    pub fn add_to_spent(&mut self, outcome: u16, amount: Balance) -> Balance {
        self.spent.increment(outcome, amount)
     }
     
-    pub fn sub_from_lp_spent(&mut self, outcome: u16, amount: u128) -> u128 {
+    pub fn sub_from_lp_spent(&mut self, outcome: u16, amount: Balance) -> Balance {
         self.lp_spent.decrement(outcome, amount)
     }
 
-    pub fn add_to_lp_spent(&mut self, outcome: u16, amount: u128) -> u128 {
+    pub fn add_to_lp_spent(&mut self, outcome: u16, amount: Balance) -> Balance {
        self.lp_spent.increment(outcome, amount)
     }
 
-    pub fn add_to_escrow_invalid(&mut self, amount: u128) -> u128 {
+    pub fn add_to_escrow_invalid(&mut self, amount: Balance) -> Balance {
         self.invalid += amount;
         self.invalid
     }
     
-    pub fn add_to_escrow_valid(&mut self, amount: u128) -> u128 {
+    pub fn add_to_escrow_valid(&mut self, amount: Balance) -> Balance {
         self.valid += amount;
         self.valid
     }
     
-    pub fn sub_from_escrow_invalid(&mut self, amount: u128) -> u128 {
+    pub fn sub_from_escrow_invalid(&mut self, amount: Balance) -> Balance {
         self.invalid -= amount;
         self.invalid
     }
 
-    pub fn sub_from_escrow_valid(&mut self, amount: u128) -> u128 {
+    pub fn sub_from_escrow_valid(&mut self, amount: Balance) -> Balance {
         self.valid -= amount;
         self.valid
     }
@@ -132,8 +133,8 @@ impl ResolutionEscrow {
     pub fn lp_on_exit(
         &mut self,
         outcome: u16,
-        spent_on_exit_shares: u128
-    ) -> u128 {
+        spent_on_exit_shares: Balance
+    ) -> Balance {
         // Account for updated lp spent
         self.sub_from_lp_spent(outcome, spent_on_exit_shares);
         
@@ -144,9 +145,9 @@ impl ResolutionEscrow {
     pub fn lp_on_join(
         &mut self, 
         outcome: u16, 
-        spent_on_outcome: u128, 
-        spent_on_amount_out: u128
-    ) -> u128 {
+        spent_on_outcome: Balance,
+        spent_on_amount_out: Balance
+    ) -> Balance {
         let lp_spent_to_add = spent_on_outcome - spent_on_amount_out;
         self.add_to_lp_spent(outcome, lp_spent_to_add);
 

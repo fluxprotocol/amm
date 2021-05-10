@@ -2,7 +2,7 @@ use std::cmp::Ordering;
 use crate::*;
 use crate::resolution_escrow::ResolutionEscrows;
 use crate::outcome_token::MintableFungibleToken;
-
+use near_sdk::Balance;
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Pool {
@@ -12,9 +12,9 @@ pub struct Pool {
     pub outcomes: u16, // the number of outcomes tokens in this pool
     pub outcome_tokens: UnorderedMap<u16, MintableFungibleToken>, // maps outcome => outcome token implementation
     pub pool_token: MintableFungibleToken, // the token representing LP positions
-    pub swap_fee: u128, // the fee paid to LPs on every swap, denominated in 1e4, meaning that 1 = 0.01% and 10000 = 100%
-    pub withdrawn_fees: LookupMap<AccountId, u128>, // amount of accumulated fees an account is (no longer) ineligable to claim
-    pub total_withdrawn_fees: u128, // total withdrawn fees
+    pub swap_fee: Balance, // the fee paid to LPs on every swap, denominated in 1e4, meaning that 1 = 0.01% and 10000 = 100%
+    pub withdrawn_fees: LookupMap<AccountId, Balance>, // amount of accumulated fees an account is (no longer) ineligable to claim
+    pub total_withdrawn_fees: Balance, // total withdrawn fees
     pub fee_pool_weight: u128, // weighted fee pool used to calculate fees owed to accounts based on LP token share
     pub resolution_escrow: ResolutionEscrows // maps account_id => Resolution Escrow scruct
 }
@@ -35,7 +35,7 @@ impl Pool {
         collateral_token_id: AccountId,
         collateral_decimals: u32,
         outcomes: u16,
-        swap_fee: u128
+        swap_fee: Balance
     ) -> Self {
         assert!(outcomes >= constants::MIN_OUTCOMES, "ERR_MIN_OUTCOMES");
         assert!(outcomes <= constants::MAX_OUTCOMES, "ERR_MAX_OUTCOMES");
@@ -60,7 +60,7 @@ impl Pool {
     /**
      * @returns the pool's swap fee
      */
-    pub fn get_swap_fee(&self) -> u128 {
+    pub fn get_swap_fee(&self) -> Balance {
         self.swap_fee
     }
 
@@ -73,7 +73,7 @@ impl Pool {
         &self,
         account_id: &AccountId, 
         outcome: u16
-    ) -> u128 {
+    ) -> Balance {
         self.outcome_tokens
             .get(&outcome)
             .expect("ERR_NO_OUTCOME")
@@ -85,11 +85,11 @@ impl Pool {
      * @param owner_id the owner for whom to return the pool token balance
      * @returns pool token balance of owner
      */
-    pub fn get_pool_token_balance(&self, owner_id: &AccountId) -> u128 {
+    pub fn get_pool_token_balance(&self, owner_id: &AccountId) -> Balance {
         self.pool_token.get_balance(owner_id)
     }
 
-    pub fn get_pool_balances(&self) -> Vec<u128> {
+    pub fn get_pool_balances(&self) -> Vec<Balance> {
         self.outcome_tokens.iter().map(|(_outcome, token)| {
             token.get_balance(&env::current_account_id())
         }).collect()
@@ -98,7 +98,7 @@ impl Pool {
     pub fn add_liquidity(
         &mut self,
         sender: &AccountId,
-        total_in: u128,
+        total_in: Balance,
         weight_indication: Option<Vec<u128>>
     ) {
         assert!(total_in >= self.min_liquidity_amount(), "ERR_MIN_LIQUIDITY_AMOUNT");
@@ -147,8 +147,8 @@ impl Pool {
     fn mint_and_transfer_outcome_tokens(
         &mut self,
         sender: AccountId,
-        total_in: u128,
-        outcome_tokens_to_return: &Vec<u128>
+        total_in: Balance,
+        outcome_tokens_to_return: &Vec<Balance>
     ) {
         let mut escrow_account = self.resolution_escrow.get_or_new(sender.to_string());
 
@@ -194,8 +194,8 @@ impl Pool {
     pub fn exit_pool(
         &mut self,
         sender: &AccountId,
-        total_in: u128
-    ) ->  u128 {
+        total_in: Balance
+    ) ->  Balance {
 
         let balances = self.get_pool_balances();
         let pool_token_supply = self.pool_token.total_supply();
@@ -237,8 +237,8 @@ impl Pool {
     pub fn burn_outcome_tokens_redeem_collateral(
         &mut self,
         sender: &AccountId,
-        to_burn: u128
-    ) -> u128 {
+        to_burn: Balance
+    ) -> Balance {
         let mut escrow_account = self.resolution_escrow.get_expect(sender);
 
         let avg_price_paid = self.outcome_tokens.iter().fold(0, |sum, (outcome, mut token)| {
@@ -295,7 +295,7 @@ impl Pool {
     fn get_and_clear_balances(
         &mut self,
         account_id: &AccountId
-    ) -> Vec<u128> {
+    ) -> Vec<Balance> {
         self.outcome_tokens.iter().map(|(_outcome, mut token)| {
             token.remove_account(account_id).unwrap_or(0)
         }).collect()
@@ -304,7 +304,7 @@ impl Pool {
     fn mint_internal(
         &mut self,
         to: &AccountId,
-        amount: u128
+        amount: Balance
     ) {
         self.before_pool_token_transfer(None, Some(to), amount);
         self.pool_token.mint(to, amount)
@@ -313,8 +313,8 @@ impl Pool {
     fn burn_internal(
         &mut self,
         from: &AccountId,
-        amount: u128
-    ) -> u128 {
+        amount: Balance
+    ) -> Balance {
         let fees = self.before_pool_token_transfer(Some(from), None, amount);
         self.pool_token.burn(from, amount);
         fees
@@ -324,8 +324,8 @@ impl Pool {
         &mut self,
         from: Option<&AccountId>,
         to: Option<&AccountId>,
-        amount: u128
-    ) -> u128 {
+        amount: Balance
+    ) -> Balance {
         let mut fees = 0;
         if let Some(account_id) = from {
             fees = self.withdraw_fees(account_id);
@@ -366,7 +366,7 @@ impl Pool {
         fees
     }
 
-    pub fn get_fees_withdrawable(&self, account_id: &AccountId) -> u128 {
+    pub fn get_fees_withdrawable(&self, account_id: &AccountId) -> Balance {
         let pool_token_bal = self.pool_token.get_balance(account_id);
         let pool_token_total_supply = self.pool_token.total_supply();
         let raw_amount = math::complex_div_u128(self.collateral_denomination, math::complex_mul_u128(self.collateral_denomination, self.fee_pool_weight, pool_token_bal), pool_token_total_supply);
@@ -377,7 +377,7 @@ impl Pool {
     pub fn withdraw_fees(
         &mut self,
         account_id: &AccountId
-    ) -> u128 {
+    ) -> Balance {
         let pool_token_bal = self.pool_token.get_balance(account_id);
         let pool_token_total_supply = self.pool_token.total_supply();
         let raw_amount = math::simple_mul_u128(pool_token_total_supply, self.fee_pool_weight, pool_token_bal);
@@ -394,9 +394,9 @@ impl Pool {
 
     pub fn calc_buy_amount(
         &self,
-        collateral_in: u128,
+        collateral_in: Balance,
         outcome_target: u16
-    ) -> u128 {
+    ) -> Balance {
         assert!(outcome_target <= self.outcomes, "ERR_INVALID_OUTCOME");
 
         let outcome_tokens = &self.outcome_tokens;
@@ -421,9 +421,9 @@ impl Pool {
 
     pub fn calc_sell_collateral_out(
         &self,
-        collateral_out: u128,
+        collateral_out: Balance,
         outcome_target: u16
-    ) -> u128 {
+    ) -> Balance {
         assert!(outcome_target <= self.outcomes, "ERR_INVALID_OUTCOME");
 
         let outcome_tokens = &self.outcome_tokens;
@@ -449,9 +449,9 @@ impl Pool {
     pub fn buy(
         &mut self,
         sender: &AccountId,
-        amount_in: u128,
+        amount_in: Balance,
         outcome_target: u16,
-        min_shares_out: u128
+        min_shares_out: Balance
     ) {
 
         assert!(outcome_target < self.outcomes, "ERR_INVALID_OUTCOME");
@@ -483,10 +483,10 @@ impl Pool {
     pub fn sell(
         &mut self,
         sender: &AccountId,
-        amount_out: u128,
+        amount_out: Balance,
         outcome_target: u16,
-        max_shares_in: u128
-    ) -> u128 {
+        max_shares_in: Balance
+    ) -> Balance {
 
         assert!(outcome_target < self.outcomes, "ERR_INVALID_OUTCOME");
         let shares_in = self.calc_sell_collateral_out(amount_out, outcome_target);
@@ -560,7 +560,7 @@ impl Pool {
         &mut self,
         account_id: &AccountId,
         payout_numerators: &Option<Vec<U128>>
-    ) -> u128 {
+    ) -> Balance {
         let pool_token_balance = self.get_pool_token_balance(account_id);
         let fees_earned = if pool_token_balance > 0 { 
             self.exit_pool(account_id, pool_token_balance) 
@@ -593,7 +593,7 @@ impl Pool {
     }
 
 
-    fn add_to_pools(&mut self, amount: u128) {
+    fn add_to_pools(&mut self, amount: Balance) {
         for outcome in 0..self.outcomes {
             let mut token = self.outcome_tokens.get(&outcome).expect("ERR_NO_OUTCOME");
             token.mint(&env::current_account_id(), amount);
@@ -601,7 +601,7 @@ impl Pool {
         }
     }
 
-    fn remove_from_pools(&mut self, amount: u128) {
+    fn remove_from_pools(&mut self, amount: Balance) {
         for outcome in 0..self.outcomes {
             let mut token = self.outcome_tokens.get(&outcome).expect("ERR_NO_OUTCOME");
             token.burn(&env::current_account_id(), amount);
@@ -610,7 +610,7 @@ impl Pool {
         }
     }
 
-    fn min_liquidity_amount(&self) -> u128 {
+    fn min_liquidity_amount(&self) -> Balance {
         self.collateral_denomination / 1_000_000
     }
 
@@ -622,7 +622,7 @@ impl Pool {
     pub fn get_spot_price(
         &self,
         target_outcome: u16
-    ) -> u128 {
+    ) -> Balance {
 
         let mut odds_weight_for_target = 0;
         let mut odds_weight_sum = 0;
@@ -646,7 +646,7 @@ impl Pool {
     pub fn get_spot_price_sans_fee(
         &self,
         target_outcome: u16
-    ) -> u128 {
+    ) -> Balance {
         let mut odds_weight_for_target = 0;
         let mut odds_weight_sum = 0;
 
