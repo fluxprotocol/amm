@@ -22,27 +22,3 @@ pub (crate) fn ns_to_ms(ns_timestamp: u64) -> u64 {
 pub (crate) fn ms_to_ns(ms_timestamp: u64) -> u64 {
     ms_timestamp * 1_000_000
 }
-
-pub (crate) fn alice() -> AccountId {
-    "alice.near".to_string()
-}
-
-pub (crate) fn bob() -> AccountId {
-    "bob.near".to_string()
-}
-
-pub (crate) fn token() -> AccountId {
-    "token".to_string()
-}
-
-pub (crate) fn empty_string() -> String {
-    "".to_string()
-}
-
-pub (crate) fn empty_string_vec(len: u16) -> Vec<String> {
-    let mut tags: Vec<String> = vec![];
-    for i in 0..len {
-        tags.push(empty_string());
-    }
-    tags
-}
