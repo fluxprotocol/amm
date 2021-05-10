@@ -1,8 +1,4 @@
 use crate::*;
-use std::convert::TryInto;
-use collateral_whitelist::Token;
-use token::*;
-use near_sdk::serde_json::json;
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Market {
@@ -490,10 +486,36 @@ impl AMMContract {
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(test)]
 mod market_basic_tests {
+    use std::convert::TryInto;
+    use near_sdk::serde_json::json;
     use near_sdk::{ MockedBlockchain };
     use near_sdk::{ testing_env, VMContext };
-    use crate::helper::{ alice, bob, token, empty_string, empty_string_vec };
+    use collateral_whitelist::Token;
     use super::*;
+
+    fn alice() -> AccountId {
+        "alice.near".to_string()
+    }
+
+    fn bob() -> AccountId {
+        "bob.near".to_string()
+    }
+
+    fn token() -> AccountId {
+        "token.near".to_string()
+    }
+
+    fn empty_string() -> String {
+        "".to_string()
+    }
+
+    fn empty_string_vec(len: u16) -> Vec<String> {
+        let mut tags: Vec<String> = vec![];
+        for i in 0..len {
+            tags.push(empty_string());
+        }
+        tags
+    }
 
     fn get_context(predecessor_account_id: AccountId, timestamp: u64) -> VMContext {
         VMContext {
@@ -507,7 +529,7 @@ mod market_basic_tests {
             account_balance: 1000 * 10u128.pow(24),
             account_locked_balance: 0,
             storage_usage: 10u64.pow(6),
-            attached_deposit: 32900000000000000000000,
+            attached_deposit: 33400000000000000000000,
             prepaid_gas: 10u64.pow(18),
             random_seed: vec![0, 1, 2],
             is_view: false,
