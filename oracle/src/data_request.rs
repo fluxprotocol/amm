@@ -162,6 +162,7 @@ impl ResolutionWindowChange for ResolutionWindow {
 #[derive(BorshSerialize, BorshDeserialize)]
 pub struct DataRequest {
     pub id: u64,
+    pub description: Option<String>,
     pub sources: Vec<Source>,
     pub outcomes: Option<Vec<String>>,
     pub requestor: mock_requestor::Requestor,
@@ -223,10 +224,11 @@ impl DataRequestChange for DataRequest {
                 validity_bond: config.validity_bond.into(),
                 fee
             },
-            initial_challenge_period: request_data.challenge_period,
+            initial_challenge_period: request_data.challenge_period.into(),
             settlement_time: request_data.settlement_time.into(),
             final_arbitrator_triggered: false,
-            target_contract: mock_target_contract::TargetContract(request_data.target_contract)
+            target_contract: mock_target_contract::TargetContract(request_data.target_contract),
+            description: request_data.description,
         }
     }
 
@@ -321,7 +323,10 @@ impl DataRequestChange for DataRequest {
             self.resolution_windows.replace(round as u64, &window);
         };
 
-        let profit = helpers::calc_product(user_correct_stake, total_incorrect_staked, total_correct_staked);
+        let profit = match total_correct_staked {
+            0 => 0,
+            _ => helpers::calc_product(user_correct_stake, total_incorrect_staked, total_correct_staked)
+        };
 
         logger::log_claim(&account_id, self.id, total_correct_staked, total_incorrect_staked, user_correct_stake, profit);
         user_correct_stake + profit
@@ -416,12 +421,11 @@ impl DataRequestView for DataRequest {
     }
 
     fn assert_reached_settlement_time(&self) {
-        let settlement_time = u64::from(self.settlement_time);
         assert!(
-            settlement_time <= u64::from(env::block_timestamp()),
+            self.settlement_time <= env::block_timestamp(),
             "Cannot stake on `DataRequest` {} until settlement time {}",
             self.id,
-            settlement_time
+            self.settlement_time
         );
     }
 
@@ -491,10 +495,6 @@ impl DataRequestView for DataRequest {
 
 #[near_bindgen]
 impl Contract {
-    pub fn dr_exists(&self, dr_id: U64) -> bool {
-        self.data_requests.get(dr_id.into()).is_some()
-    }
-
     // Merge config and payload
     pub fn dr_new(&mut self, sender: AccountId, amount: Balance, payload: NewDataRequestArgs) -> Balance {
         let config = self.get_config();
@@ -615,6 +615,7 @@ impl Contract {
     }
 }
 
+#[near_bindgen]
 impl Contract {
     fn dr_get_expect(&self, id: U64) -> DataRequest {
         self.data_requests.get(id.into()).expect("DataRequest with this id does not exist")
@@ -707,9 +708,10 @@ mod mock_token_basic_tests {
         contract.dr_new(bob(), 100, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: Some(vec!["a".to_string()].to_vec()),
-            challenge_period: 1500,
+            challenge_period: U64(1500),
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
     }
 
@@ -723,9 +725,10 @@ mod mock_token_basic_tests {
         contract.dr_new(alice(), 100, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: None,
-            challenge_period: 0,
+            challenge_period: U64(0),
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
     }
 
@@ -738,9 +741,10 @@ mod mock_token_basic_tests {
         contract.dr_new(bob(), 100, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: None,
-            challenge_period: 0,
+            challenge_period: U64(0),
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
     }
 
@@ -762,9 +766,10 @@ mod mock_token_basic_tests {
         contract.dr_new(bob(), 100, NewDataRequestArgs{
             sources: vec![x1,x2,x3,x4,x5,x6,x7,x8,x9],
             outcomes: None,
-            challenge_period: 1000,
+            challenge_period: U64(1000),
             settlement_time: U64(0),
             target_contract: target(),
+            description: None,
         });
     }
 
@@ -788,9 +793,26 @@ mod mock_token_basic_tests {
                 "8".to_string(),
                 "9".to_string()
             ]),
-            challenge_period: 1000,
+            challenge_period: U64(1000),
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
+        });
+    }
+
+    #[test]
+    #[should_panic(expected = "Description should be filled when no sources are given")]
+    fn dr_description_required_no_sources() {
+        testing_env!(get_context(token()));
+        let whitelist = Some(vec![to_valid(bob()), to_valid(carol())]);
+        let mut contract = Contract::new(whitelist, config());
+        contract.dr_new(bob(), 100, NewDataRequestArgs{
+            sources: vec![],
+            outcomes: None,
+            challenge_period: U64(1000),
+            settlement_time: U64(0),
+            target_contract: target(),
+            description: None,
         });
     }
 
@@ -804,9 +826,10 @@ mod mock_token_basic_tests {
         contract.dr_new(bob(), 100, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: None,
-            challenge_period: 999,
+            challenge_period: U64(999),
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
     }
 
@@ -820,9 +843,10 @@ mod mock_token_basic_tests {
         contract.dr_new(bob(), 100, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: None,
-            challenge_period: 3001,
+            challenge_period: U64(3001),
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
     }
 
@@ -836,9 +860,10 @@ mod mock_token_basic_tests {
         contract.dr_new(bob(), 90, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: None,
-            challenge_period: 1500,
+            challenge_period: U64(1500),
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
     }
 
@@ -851,9 +876,10 @@ mod mock_token_basic_tests {
         let amount : Balance = contract.dr_new(bob(), 200, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: None,
-            challenge_period: 1500,
+            challenge_period: U64(1500),
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
         assert_eq!(amount, 100);
     }
@@ -867,9 +893,10 @@ mod mock_token_basic_tests {
         let amount : Balance = contract.dr_new(bob(), 100, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: None,
-            challenge_period: 1500,
+            challenge_period: U64(1500),
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
         assert_eq!(amount, 0);
     }
@@ -878,9 +905,10 @@ mod mock_token_basic_tests {
         contract.dr_new(bob(), 100, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: Some(vec!["a".to_string(), "b".to_string()].to_vec()),
-            challenge_period: 1500,
+            challenge_period: U64(1500),
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
     }
 
@@ -961,9 +989,10 @@ mod mock_token_basic_tests {
         contract.dr_new(bob(), 100, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: Some(vec!["a".to_string()].to_vec()),
-            challenge_period: 1500,
+            challenge_period: U64(1500),
             settlement_time: U64(0),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
 
         contract.dr_stake(alice(), 200, StakeDataRequestArgs{
@@ -1686,9 +1715,10 @@ mod mock_token_basic_tests {
         contract.dr_new(bob(), 100, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: Some(vec!["a".to_string(), "b".to_string()].to_vec()),
-            challenge_period: 1500,
+            challenge_period: U64(1500),
             settlement_time: U64(100),
             target_contract: target(),
+            description: Some("a".to_string()),
         });
 
         contract.dr_stake(alice(), 10, StakeDataRequestArgs{

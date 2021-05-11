@@ -8,11 +8,11 @@ use near_sdk::json_types::{ ValidAccountId, U64, U128 };
 near_sdk::setup_alloc!();
 
 mod types;
-pub mod data_request;
+mod data_request;
 mod fungible_token_receiver;
 mod callback_args;
 mod whitelist;
-pub mod oracle_config;
+mod oracle_config;
 mod storage_manager;
 mod helpers;
 mod logger;
@@ -24,7 +24,7 @@ mod fungible_token;
 
 use callback_args::*;
 
-use types::{ Timestamp, WrappedTimestamp };
+use types::*;
 use data_request::{ DataRequest };
 
 #[near_bindgen]

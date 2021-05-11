@@ -8,9 +8,10 @@ const MIN_PERIOD_MULTIPLIER: u64 = 3;
 #[derive(Serialize, Deserialize)]
 pub struct NewDataRequestArgs {
     pub sources: Vec<data_request::Source>,
+    pub description: Option<String>,
     pub outcomes: Option<Vec<String>>,
-    pub challenge_period: Timestamp,
-    pub settlement_time: U64,
+    pub challenge_period: WrappedTimestamp,
+    pub settlement_time: WrappedTimestamp,
     pub target_contract: AccountId,
 }
 
@@ -19,6 +20,7 @@ impl Contract {
         let config = self.get_config();
         let challenge_period: u64 = data_request.challenge_period.into();
 
+        assert!((data_request.description.is_none() && data_request.sources.len() as u8 != 0) || data_request.description.is_some(), "Description should be filled when no sources are given");
         assert!(data_request.sources.len() as u8 <= MAX_SOURCES, "Too many sources provided, max sources is: {}", MAX_SOURCES);
         assert!(challenge_period >= config.min_initial_challenge_window_duration, "Challenge shorter than minimum challenge period of {}", config.min_initial_challenge_window_duration);
         assert!(challenge_period <= config.default_challenge_window_duration * MIN_PERIOD_MULTIPLIER, "Challenge period exceeds maximum challenge period of {}", config.default_challenge_window_duration * MIN_PERIOD_MULTIPLIER);

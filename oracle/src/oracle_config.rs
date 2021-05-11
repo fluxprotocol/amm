@@ -38,7 +38,6 @@ impl Contract {
     }
 }
 
-#[near_bindgen]
 impl Contract {
     pub fn get_config(&self) -> OracleConfig {
         self.configs.iter().last().unwrap()
