@@ -39,6 +39,7 @@ pub struct Source {
 pub struct ResolutionWindow {
     pub dr_id: u64,
     pub round: u16,
+    pub start_time: Timestamp,
     pub end_time: Timestamp,
     pub bond_size: Balance,
     pub outcome_to_stake: LookupMap<Outcome, Balance>,
@@ -47,18 +48,19 @@ pub struct ResolutionWindow {
 }
 
 trait ResolutionWindowChange {
-    fn new(dr_id: u64, round: u16, prev_bond: Balance, challenge_period: u64) -> Self;
+    fn new(dr_id: u64, round: u16, prev_bond: Balance, challenge_period: u64, start_time: u64) -> Self;
     fn stake(&mut self, sender: AccountId, outcome: Outcome, amount: Balance) -> Balance;
     fn unstake(&mut self, sender: AccountId, outcome: Outcome, amount: Balance) -> Balance;
     fn claim_for(&mut self, account_id: AccountId, final_outcome: &Outcome) -> WindowStakeResult;
 }
 
 impl ResolutionWindowChange for ResolutionWindow {
-    fn new(dr_id: u64, round: u16, prev_bond: Balance, challenge_period: u64) -> Self {
+    fn new(dr_id: u64, round: u16, prev_bond: Balance, challenge_period: u64, start_time: u64) -> Self {
         let new_resolution_window = Self {
             dr_id,
             round,
-            end_time: env::block_timestamp() + challenge_period,
+            start_time,
+            end_time: start_time + challenge_period,
             bond_size: prev_bond * 2,
             outcome_to_stake: LookupMap::new(format!("ots{}:{}", dr_id, round).as_bytes().to_vec()),
             user_to_outcome_to_stake: LookupMap::new(format!("utots{}:{}", dr_id, round).as_bytes().to_vec()),
@@ -167,6 +169,7 @@ pub struct DataRequest {
     pub resolution_windows: Vector<ResolutionWindow>,
     pub global_config_id: u64, // Config id
     pub request_config: DataRequestConfig,
+    pub settlement_time: u64,
     pub initial_challenge_period: Duration,
     pub final_arbitrator_triggered: bool,
     pub target_contract: mock_target_contract::TargetContract
@@ -220,7 +223,8 @@ impl DataRequestChange for DataRequest {
                 validity_bond: config.validity_bond.into(),
                 fee
             },
-            initial_challenge_period: request_data.challenge_period.into(),
+            initial_challenge_period: request_data.challenge_period,
+            settlement_time: request_data.settlement_time.into(),
             final_arbitrator_triggered: false,
             target_contract: mock_target_contract::TargetContract(request_data.target_contract)
         }
@@ -236,7 +240,7 @@ impl DataRequestChange for DataRequest {
             .iter()
             .last()
             .unwrap_or_else( || {
-                ResolutionWindow::new(self.id, 0, self.calc_resolution_bond(), self.initial_challenge_period)
+                ResolutionWindow::new(self.id, 0, self.calc_resolution_bond(), self.initial_challenge_period, env::block_timestamp())
             });
 
         let unspent = window.stake(sender, outcome, amount);
@@ -258,7 +262,8 @@ impl DataRequestChange for DataRequest {
                     self.id,
                     self.resolution_windows.len() as u16,
                     window.bond_size,
-                    self.request_config.default_challenge_window_duration
+                    self.request_config.default_challenge_window_duration,
+                    env::block_timestamp()
                 )
             );
         }
@@ -271,7 +276,7 @@ impl DataRequestChange for DataRequest {
         let mut window = self.resolution_windows
             .get(round as u64)
             .unwrap_or(
-                ResolutionWindow::new(self.id, 0, self.calc_resolution_bond(), self.initial_challenge_period)
+                ResolutionWindow::new(self.id, 0, self.calc_resolution_bond(), self.initial_challenge_period, env::block_timestamp())
             );
 
         window.unstake(sender, outcome, amount)
@@ -343,6 +348,7 @@ trait DataRequestView {
     fn assert_final_arbitrator(&self);
     fn assert_final_arbitrator_invoked(&self);
     fn assert_final_arbitrator_not_invoked(&self);
+    fn assert_reached_settlement_time(&self);
     fn get_final_outcome(&self) -> Option<Outcome>;
     fn get_tvl(&self) -> Balance;
     fn calc_resolution_bond(&self) -> Balance;
@@ -406,6 +412,16 @@ impl DataRequestView for DataRequest {
             !self.final_arbitrator_triggered,
             "Final arbitrator is invoked for `DataRequest` with id: {}",
             self.id
+        );
+    }
+
+    fn assert_reached_settlement_time(&self) {
+        let settlement_time = u64::from(self.settlement_time);
+        assert!(
+            settlement_time <= u64::from(env::block_timestamp()),
+            "Cannot stake on `DataRequest` {} until settlement time {}",
+            self.id,
+            settlement_time
         );
     }
 
@@ -511,6 +527,7 @@ impl Contract {
         let mut dr = self.dr_get_expect(payload.id.into());
         let config = self.configs.get(dr.global_config_id).unwrap();
         self.assert_sender(&config.stake_token);
+        dr.assert_reached_settlement_time();
         dr.assert_final_arbitrator_not_invoked();
         dr.assert_can_stake_on_outcome(&payload.outcome);
         dr.assert_valid_outcome(&payload.outcome);
@@ -690,7 +707,8 @@ mod mock_token_basic_tests {
         contract.dr_new(bob(), 100, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: Some(vec!["a".to_string()].to_vec()),
-            challenge_period: U64(1500),
+            challenge_period: 1500,
+            settlement_time: U64(0),
             target_contract: target(),
         });
     }
@@ -705,7 +723,8 @@ mod mock_token_basic_tests {
         contract.dr_new(alice(), 100, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: None,
-            challenge_period: U64(0),
+            challenge_period: 0,
+            settlement_time: U64(0),
             target_contract: target(),
         });
     }
@@ -719,7 +738,8 @@ mod mock_token_basic_tests {
         contract.dr_new(bob(), 100, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: None,
-            challenge_period: U64(0),
+            challenge_period: 0,
+            settlement_time: U64(0),
             target_contract: target(),
         });
     }
@@ -742,7 +762,8 @@ mod mock_token_basic_tests {
         contract.dr_new(bob(), 100, NewDataRequestArgs{
             sources: vec![x1,x2,x3,x4,x5,x6,x7,x8,x9],
             outcomes: None,
-            challenge_period: U64(1000),
+            challenge_period: 1000,
+            settlement_time: U64(0),
             target_contract: target(),
         });
     }
@@ -767,7 +788,8 @@ mod mock_token_basic_tests {
                 "8".to_string(),
                 "9".to_string()
             ]),
-            challenge_period: U64(1000),
+            challenge_period: 1000,
+            settlement_time: U64(0),
             target_contract: target(),
         });
     }
@@ -782,7 +804,8 @@ mod mock_token_basic_tests {
         contract.dr_new(bob(), 100, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: None,
-            challenge_period: U64(999),
+            challenge_period: 999,
+            settlement_time: U64(0),
             target_contract: target(),
         });
     }
@@ -797,7 +820,8 @@ mod mock_token_basic_tests {
         contract.dr_new(bob(), 100, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: None,
-            challenge_period: U64(3001),
+            challenge_period: 3001,
+            settlement_time: U64(0),
             target_contract: target(),
         });
     }
@@ -812,7 +836,8 @@ mod mock_token_basic_tests {
         contract.dr_new(bob(), 90, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: None,
-            challenge_period: U64(1500),
+            challenge_period: 1500,
+            settlement_time: U64(0),
             target_contract: target(),
         });
     }
@@ -826,7 +851,8 @@ mod mock_token_basic_tests {
         let amount : Balance = contract.dr_new(bob(), 200, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: None,
-            challenge_period: U64(1500),
+            challenge_period: 1500,
+            settlement_time: U64(0),
             target_contract: target(),
         });
         assert_eq!(amount, 100);
@@ -841,7 +867,8 @@ mod mock_token_basic_tests {
         let amount : Balance = contract.dr_new(bob(), 100, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: None,
-            challenge_period: U64(1500),
+            challenge_period: 1500,
+            settlement_time: U64(0),
             target_contract: target(),
         });
         assert_eq!(amount, 0);
@@ -851,7 +878,8 @@ mod mock_token_basic_tests {
         contract.dr_new(bob(), 100, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: Some(vec!["a".to_string(), "b".to_string()].to_vec()),
-            challenge_period: U64(1500),
+            challenge_period: 1500,
+            settlement_time: U64(0),
             target_contract: target(),
         });
     }
@@ -933,7 +961,8 @@ mod mock_token_basic_tests {
         contract.dr_new(bob(), 100, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: Some(vec!["a".to_string()].to_vec()),
-            challenge_period: U64(1500),
+            challenge_period: 1500,
+            settlement_time: U64(0),
             target_contract: target(),
         });
 
@@ -1646,5 +1675,26 @@ mod mock_token_basic_tests {
         let request : DataRequest = contract.data_requests.get(0).unwrap();
         assert_eq!(request.resolution_windows.len(), 2);
         assert_eq!(request.finalized_outcome.unwrap(), data_request::Outcome::Answer("b".to_string()));
+    }
+
+    #[test]
+    #[should_panic(expected = "Cannot stake on `DataRequest` 0 until settlement time 100")]
+    fn dr_stake_before_settlement_time() {
+        testing_env!(get_context(token()));
+        let whitelist = Some(vec![to_valid(bob()), to_valid(carol())]);
+        let mut contract = Contract::new(whitelist, config());
+        contract.dr_new(bob(), 100, NewDataRequestArgs{
+            sources: Vec::new(),
+            outcomes: Some(vec!["a".to_string(), "b".to_string()].to_vec()),
+            challenge_period: 1500,
+            settlement_time: U64(100),
+            target_contract: target(),
+        });
+
+        contract.dr_stake(alice(), 10, StakeDataRequestArgs{
+            id: U64(0),
+            outcome: data_request::Outcome::Answer("b".to_string())
+        });
+
     }
 }

@@ -130,7 +130,8 @@ mod mock_token_basic_tests {
         contract.dr_new(bob(), 100, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: Some(vec!["a".to_string(), "b".to_string()].to_vec()),
-            challenge_period: U64(1500),
+            challenge_period: 1500,
+            settlement_time: U64(0),
             target_contract: target(),
         });
 
@@ -152,7 +153,8 @@ mod mock_token_basic_tests {
         contract.dr_new(bob(), 100, NewDataRequestArgs{
             sources: Vec::new(),
             outcomes: Some(vec!["a".to_string(), "b".to_string()].to_vec()),
-            challenge_period: U64(1500),
+            challenge_period: 1500,
+            settlement_time: U64(0),
             target_contract: target(),
         });
 
