@@ -22,8 +22,10 @@ impl AMMContract {
                 "NewDataRequest": {
                     // 12 hour challenge period,
                     "challenge_period": U64(2999),
+                    "settlement_time": U64(2999),
                     "target_contract": "oracle".to_string(),
-                    "sources": [], 
+                    "sources": [],
+                    "description": "test"
                 },
             }).to_string()
         )

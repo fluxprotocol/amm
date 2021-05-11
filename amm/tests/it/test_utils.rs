@@ -101,8 +101,8 @@ pub fn init(
         stake_token: TOKEN_CONTRACT_ID.to_string(),
         validity_bond: U128(100),
         max_outcomes: 8,
-        default_challenge_window_duration: 1000,
-        min_initial_challenge_window_duration: 1000,
+        default_challenge_window_duration: U64(1000),
+        min_initial_challenge_window_duration: U64(1000),
         final_arbitrator_invoke_amount: U128(250),
         resolution_fee_percentage: 10_000,
     };
@@ -123,7 +123,7 @@ pub fn init(
     );
 
     let ft_storage_amount = get_storage_amount(&master_account);
-    let oracle_storage_amount = 1800000000000000000000_u128;
+    let oracle_storage_amount = 180000000000000000000000_u128;
     storage_deposit(TOKEN_CONTRACT_ID, &master_account, ft_storage_amount.into(), Some(AMM_CONTRACT_ID.to_string()));
     storage_deposit(ORACLE_CONTRACT_ID, &master_account, oracle_storage_amount, Some(AMM_CONTRACT_ID.to_string()));
     storage_deposit(TOKEN_CONTRACT_ID, &master_account, ft_storage_amount.into(), Some(ORACLE_CONTRACT_ID.to_string()));
@@ -211,17 +211,6 @@ pub fn storage_deposit(receiver: &str, sender: &UserAccount, deposit: u128, to_r
     assert!(res.is_ok(), "storage deposit failed with res: {:?}", res);
 }
 
-pub fn dr_get_expect(sender: &UserAccount, dr_id: u64) {
-    let res: bool = sender.view(
-        PendingContractTx::new(
-            ORACLE_CONTRACT_ID,
-            "dr_exists",
-            json!({"dr_id": U64(dr_id)}),
-            true
-        )
-    ).unwrap_json();
-}
-
 pub fn near_deposit(sender: &UserAccount, deposit: u128) {
     let res = sender.call(
         PendingContractTx::new(
@@ -234,6 +223,20 @@ pub fn near_deposit(sender: &UserAccount, deposit: u128) {
         DEFAULT_GAS
     );
     assert!(res.is_ok(), "wnear deposit failed with res: {:?}", res);
+}
+
+pub fn dr_new(sender: &UserAccount) {
+    let msg = json!({
+        "NewDataRequest": {
+            // 12 hour challenge period,
+            "challenge_period": U64(2999),
+            "settlement_time": U64(2999),
+            "target_contract": "oracle".to_string(),
+            "sources": [], 
+            "description": "test description"
+        }
+    }).to_string();
+    ft_transfer_call(sender, to_token_denom(100), msg, ORACLE_CONTRACT_ID.to_string());
 }
 
 pub fn ft_balance_of(sender: &UserAccount, account_id: &AccountId) -> U128 {
@@ -275,14 +278,15 @@ pub fn transfer_unsafe(
 pub fn ft_transfer_call(
     sender: &UserAccount, 
     amount: u128,
-    msg: String
+    msg: String,
+    receiver: String
 ) -> ExecutionResult {
     let res = sender.call(
         PendingContractTx::new(
             TOKEN_CONTRACT_ID, 
             "ft_transfer_call", 
             json!({
-                "receiver_id": AMM_CONTRACT_ID.to_string(),
+                "receiver_id": receiver,
                 "amount": U128::from(amount),
                 "msg": msg,
                 "memo": "".to_string()
@@ -330,7 +334,7 @@ pub fn create_market(creator: &UserAccount, amm: &ContractAccount<AMMContractCon
         },
         "function": "create_market"
     }).to_string();
-    ft_transfer_call(creator, to_token_denom(100), msg)
+    ft_transfer_call(creator, to_token_denom(100), msg, AMM_CONTRACT_ID.to_string())
 }
 
 pub fn to_token_denom(amt: u128) -> u128 {

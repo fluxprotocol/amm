@@ -130,14 +130,15 @@ impl FungibleTokenCore for TokenContract {
             receiver_id.as_ref(),
             NO_DEPOSIT,
             env::prepaid_gas() - GAS_FOR_FT_TRANSFER_CALL,
-        ).then(ext_self::ft_resolve_transfer(
-            sender_id,
-            receiver_id.into(),
-            amount.into(),
-            &env::current_account_id(),
-            NO_DEPOSIT,
-            GAS_FOR_RESOLVE_TRANSFER,
-        ))
+        )
+        // .then(ext_self::ft_resolve_transfer(
+        //     sender_id,
+        //     receiver_id.into(),
+        //     amount.into(),
+        //     &env::current_account_id(),
+        //     NO_DEPOSIT,
+        //     GAS_FOR_RESOLVE_TRANSFER,
+        // ))
     }
 
     fn ft_total_supply(&self) -> U128 {
