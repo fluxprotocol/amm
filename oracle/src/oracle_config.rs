@@ -22,6 +22,9 @@ pub struct OracleConfig {
 
 #[near_bindgen]
 impl Contract {
+    pub fn get_config(&self) -> OracleConfig {
+        self.configs.iter().last().unwrap()
+    }
 
     #[payable]
     pub fn set_config(&mut self, new_config: OracleConfig) {
@@ -38,9 +41,6 @@ impl Contract {
 }
 
 impl Contract {
-    pub fn get_config(&self) -> OracleConfig {
-        self.configs.iter().last().unwrap()
-    }
 
     pub fn assert_sender(&self, expected_sender: &AccountId) {
         assert_eq!(&env::predecessor_account_id(), expected_sender, "This function can only be called by {}", expected_sender);
