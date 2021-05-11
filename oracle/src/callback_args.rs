@@ -9,8 +9,9 @@ const MIN_PERIOD_MULTIPLIER: u64 = 3;
 pub struct NewDataRequestArgs {
     pub sources: Vec<data_request::Source>,
     pub outcomes: Option<Vec<String>>,
-    pub challenge_period: WrappedTimestamp,
-    pub target_contract: AccountId
+    pub challenge_period: Timestamp,
+    pub settlement_time: U64,
+    pub target_contract: AccountId,
 }
 
 impl Contract {

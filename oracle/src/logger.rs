@@ -36,6 +36,7 @@ pub fn log_new_data_request(request: &DataRequest) {
                 "requestor": request.requestor.0,
                 "finalized_outcome": request.finalized_outcome,
                 "initial_challenge_period": U64(request.initial_challenge_period),
+                "settlement_time": U64(request.settlement_time),
                 "final_arbitrator_triggered": request.final_arbitrator_triggered,
                 "target_contract": request.target_contract.0,
                 "global_config_id": U64(request.global_config_id),
@@ -62,6 +63,7 @@ pub fn log_update_data_request(request: &DataRequest) {
                 "requestor": request.requestor.0,
                 "finalized_outcome": request.finalized_outcome,
                 "initial_challenge_period": U64(request.initial_challenge_period),
+                "settlement_time": U64(request.settlement_time),
                 "final_arbitrator_triggered": request.final_arbitrator_triggered,
                 "target_contract": request.target_contract.0,
             }
@@ -109,6 +111,7 @@ pub fn log_resolution_window(window: &ResolutionWindow) {
                 "id": format!("rw_{}_{}", window.dr_id, window.round),
                 "dr_id": U64(window.dr_id),
                 "round": window.round,
+                "start_time": U64(window.start_time),
                 "end_time": U64(window.end_time),
                 "bond_size": U128(window.bond_size),
                 "bonded_outcome": window.bonded_outcome,
