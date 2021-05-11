@@ -35,6 +35,7 @@ impl FungibleTokenReceiver for Contract {
         if env::storage_usage() >= initial_storage_usage {
             // used more storage, deduct from balance
             let difference : u128 = u128::from(env::storage_usage() - initial_storage_usage);
+            assert!(initial_user_balance >= difference * STORAGE_PRICE_PER_BYTE, "Not enough storage deposit has: {} deposited, {} needed", initial_user_balance, difference);
             self.accounts.insert(&sender_id, &(initial_user_balance - difference * STORAGE_PRICE_PER_BYTE));
         } else {
             // freed up storage, add to balance
