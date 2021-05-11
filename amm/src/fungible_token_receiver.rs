@@ -5,6 +5,23 @@ use crate::types::{ WrappedBalance };
 use storage_manager::{ STORAGE_PRICE_PER_BYTE };
 
 /**
+ * @notice `create_market` args
+ */
+#[derive(Serialize, Deserialize)]
+pub struct CreateMarketArgs {
+    pub description: String, // Description of market
+    pub extra_info: String, // Details that help with market resolution
+    pub outcomes: u16, // Number of possible outcomes for the market
+    pub outcome_tags: Vec<String>, // Tags describing outcomes
+    pub categories: Vec<String>, // Categories for filtering and curation
+    pub end_time: WrappedTimestamp, // Time when trading is halted
+    pub resolution_time: WrappedTimestamp, // Time when resolution is possible
+    pub collateral_token_id: AccountId, // `AccountId` of collateral that traded in the market
+    pub swap_fee: U128, // Swap fee denominated as ration in same denomination as the collateral
+    pub is_scalar: Option<bool>, // Wether market is scalar market or not
+}
+
+/**
  * @notice `add_liquidity` args
  */
 #[derive(Serialize, Deserialize)]
@@ -26,7 +43,8 @@ pub struct BuyArgs {
 #[derive(Serialize, Deserialize)]
 pub enum Payload {
     BuyArgs(BuyArgs),
-    AddLiquidityArgs(AddLiquidityArgs)
+    AddLiquidityArgs(AddLiquidityArgs),
+    CreateMarketArgs(CreateMarketArgs)
 }
 
 pub trait FungibleTokenReceiver {
@@ -60,7 +78,8 @@ impl FungibleTokenReceiver for AMMContract {
         let payload: Payload = serde_json::from_str(&msg).expect("Failed to parse the payload, invalid `msg` format");
         match payload {
             Payload::BuyArgs(payload) => self.buy(&sender_id, amount, payload), 
-            Payload::AddLiquidityArgs(payload) => self.add_liquidity(&sender_id, amount, payload)
+            Payload::AddLiquidityArgs(payload) => self.add_liquidity(&sender_id, amount, payload),
+            Payload::CreateMarketArgs(payload) => self.ft_create_market_callback(&sender_id, amount, payload).into()
         };
 
         if env::storage_usage() >= initial_storage_usage {

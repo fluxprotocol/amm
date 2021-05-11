@@ -321,18 +321,18 @@ pub fn fee() -> U128 {
 
 pub fn create_market(creator: &UserAccount, amm: &ContractAccount<AMMContractContract>, outcomes: u16, fee_opt: Option<U128>) -> ExecutionResult {
     let msg = json!({
-        "args": {
-            "description": "bla",
-            "extra_info": "bla",
+        "CreateMarketArgs": {
+            "description": empty_string(),
+            "extra_info": empty_string(),
             "outcomes": outcomes,
-            "outcome_tags": ["0", "1"],
-            "categories": ["0"],
-            "end_time": "1630137884716",
+            "outcome_tags": empty_string_vec(outcomes),
+            "categories": empty_string_vec(outcomes),
+            "end_time": env_time(),
+            "resolution_time": env_time(),
             "collateral_token_id": TOKEN_CONTRACT_ID,
             "swap_fee": fee_opt,
             "is_scalar": false
-        },
-        "function": "create_market"
+        }
     }).to_string();
     ft_transfer_call(creator, to_token_denom(100), msg, AMM_CONTRACT_ID.to_string())
 }

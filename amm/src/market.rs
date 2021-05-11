@@ -203,7 +203,7 @@ impl AMMContract {
     //     logger::log_market_status(&market);
         
     //     self.markets.push(&market);
-    //     self.refund_storage(initial_storage, env::predecessor_account_id());
+    //     helper::refund_storage(initial_storage, env::predecessor_account_id());
     //     market_id.into()
     // }
 
@@ -237,7 +237,7 @@ impl AMMContract {
         );
 
         self.markets.replace(market_id.into(), &market);
-        self.refund_storage(initial_storage, env::predecessor_account_id());
+        helper::refund_storage(initial_storage, env::predecessor_account_id());
 
         collateral_token::ft_transfer(
             env::predecessor_account_id(), 
@@ -274,7 +274,7 @@ impl AMMContract {
 
         self.markets.replace(market_id.into(), &market);
 
-        self.refund_storage(initial_storage, env::predecessor_account_id());
+        helper::refund_storage(initial_storage, env::predecessor_account_id());
 
         let payout = u128::from(to_burn) - escrowed;
 
@@ -313,7 +313,7 @@ impl AMMContract {
         
         self.markets.replace(market_id.into(), &market);
 
-        self.refund_storage(initial_storage, env::predecessor_account_id());
+        helper::refund_storage(initial_storage, env::predecessor_account_id());
 
         if fees_earned > 0 {
             PromiseOrValue::Promise(
@@ -361,7 +361,7 @@ impl AMMContract {
         market.payout_numerator = payout_numerator;
         market.finalized = true;
         self.markets.replace(market_id.into(), &market);
-        // self.refund_storage(initial_storage, env::predecessor_account_id());
+        // helper::refund_storage(initial_storage, env::predecessor_account_id());
 
         logger::log_market_status(&market);
     }
@@ -383,7 +383,7 @@ impl AMMContract {
         let payout = market.pool.payout(&env::predecessor_account_id(), &market.payout_numerator);
         self.markets.replace(market_id.into(), &market);
 
-        self.refund_storage(initial_storage, env::predecessor_account_id());
+        helper::refund_storage(initial_storage, env::predecessor_account_id());
 
         logger::log_claim_earnings(
             market_id,
@@ -426,7 +426,7 @@ impl AMMContract {
         sender: &AccountId,
         total_in: u128,
         args: AddLiquidityArgs,
-    ) {
+    ) -> PromiseOrValue<u8> {
         let weights_u128: Option<Vec<u128>> = match args.weight_indication {
             Some(weight_indication) => {
                 Some(weight_indication
@@ -449,6 +449,7 @@ impl AMMContract {
             weights_u128
         );
         self.markets.replace(args.market_id.into(), &market);
+        PromiseOrValue::Value(0)
     }
 
 
@@ -463,7 +464,7 @@ impl AMMContract {
         sender: &AccountId,
         collateral_in: u128, 
         args: BuyArgs,
-    ) {
+    ) -> PromiseOrValue<u8> {
         let mut market = self.markets.get(args.market_id.into()).expect("ERR_NO_MARKET");
         assert!(!market.finalized, "ERR_FINALIZED_MARKET");
         assert!(market.end_time > ns_to_ms(env::block_timestamp()), "ERR_MARKET_ENDED");
@@ -477,6 +478,7 @@ impl AMMContract {
         );
 
         self.markets.replace(args.market_id.into(), &market);
+        PromiseOrValue::Value(0)
     }
 }
 
@@ -545,16 +547,18 @@ mod market_basic_tests {
         );
 
         contract.create_market(
-            empty_string(), // market description
-            empty_string(), // extra info
-            2, // outcomes
-            empty_string_vec(2), // outcome tags
-            empty_string_vec(2), // categories
-            1609951265967.into(), // end_time
-            1619882574000.into(), // resolution_time (~1 day after end_time)
-            token(), // collateral_token_id
-            (10_u128.pow(24) / 50).into(), // swap fee, 2%
-            None // is_scalar
+            CreateMarketArgs {
+                description: empty_string(), // market description
+                extra_info: empty_string(), // extra info
+                outcomes: 2, // outcomes
+                outcome_tags: empty_string_vec(2), // outcome tags
+                categories: empty_string_vec(2), // categories
+                end_time: 1609951265967.into(), // end_time
+                resolution_time: 1619882574000.into(), // resolution_time (~1 day after end_time)
+                collateral_token_id: token(), // collateral_token_id
+                swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
+                is_scalar: None // is_scalar
+            }
         );
     }
 
@@ -569,16 +573,18 @@ mod market_basic_tests {
         );
 
         let market_id = contract.create_market(
-            empty_string(), // market description
-            empty_string(), // extra info
-            2, // outcomes
-            empty_string_vec(2), // outcome tags
-            empty_string_vec(2), // categories
-            1609951265967.into(), // end_time
-            1619882574000.into(), // resolution_time (~1 day after end_time)
-            token(), // collateral_token_id
-            (10_u128.pow(24) / 50).into(), // swap fee, 2%
-            None // is_scalar
+            CreateMarketArgs {
+                description: empty_string(), // market description
+                extra_info: empty_string(), // extra info
+                outcomes: 2, // outcomes
+                outcome_tags: empty_string_vec(2), // outcome tags
+                categories: empty_string_vec(2), // categories
+                end_time: 1609951265967.into(), // end_time
+                resolution_time: 1619882574000.into(), // resolution_time (~1 day after end_time)
+                collateral_token_id: token(), // collateral_token_id
+                swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
+                is_scalar: None // is_scalar
+            }
         );
 
         testing_env!(get_context(token(), ms_to_ns(1619882574000)));
@@ -606,16 +612,18 @@ mod market_basic_tests {
         );
 
         let market_id = contract.create_market(
-            empty_string(), // market description
-            empty_string(), // extra info
-            2, // outcomes
-            empty_string_vec(2), // outcome tags
-            empty_string_vec(2), // categories
-            1609951265967.into(), // end_time
-            1609951265965.into(), // resolution_time (less than end_time for err)
-            token(), // collateral_token_id
-            (10_u128.pow(24) / 50).into(), // swap fee, 2%
-            None // is_scalar
+            CreateMarketArgs {
+                description: empty_string(), // market description
+                extra_info: empty_string(), // extra info
+                outcomes: 2, // outcomes
+                outcome_tags: empty_string_vec(2), // outcome tags
+                categories: empty_string_vec(2), // categories
+                end_time: 1609951265967.into(), // end_time
+                resolution_time: 1609951265965.into(), // resolution_time (~1 day after end_time)
+                collateral_token_id: token(), // collateral_token_id
+                swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
+                is_scalar: None // is_scalar
+            }
         );
     }
 
@@ -630,16 +638,18 @@ mod market_basic_tests {
         );
 
         let market_id = contract.create_market(
-            empty_string(), // market description
-            empty_string(), // extra info
-            2, // outcomes
-            empty_string_vec(2), // outcome tags
-            empty_string_vec(2), // categories
-            1609951265967.into(), // end_time
-            1619882574000.into(), // resolution_time (~1 day after end_time)
-            token(), // collateral_token_id
-            (10_u128.pow(24) / 50).into(), // swap fee, 2%
-            None // is_scalar
+            CreateMarketArgs {
+                description: empty_string(), // market description
+                extra_info: empty_string(), // extra info
+                outcomes: 2, // outcomes
+                outcome_tags: empty_string_vec(2), // outcome tags
+                categories: empty_string_vec(2), // categories
+                end_time: 1609951265967.into(), // end_time
+                resolution_time: 1619882574000.into(), // resolution_time (~1 day after end_time)
+                collateral_token_id: token(), // collateral_token_id
+                swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
+                is_scalar: None // is_scalar
+            }
         );
 
         testing_env!(get_context(token(), 0));
@@ -673,16 +683,18 @@ mod market_basic_tests {
         );
 
         let market_id = contract.create_market(
-            empty_string(), // market description
-            empty_string(), // extra info
-            2, // outcomes
-            empty_string_vec(2), // outcome tags
-            empty_string_vec(2), // categories
-            1609951265967.into(), // end_time
-            1619882574000.into(), // resolution_time (~1 day after end_time)
-            token(), // collateral_token_id
-            (10_u128.pow(24) / 50).into(), // swap fee, 2%
-            None // is_scalar
+            CreateMarketArgs {
+                description: empty_string(), // market description
+                extra_info: empty_string(), // extra info
+                outcomes: 2, // outcomes
+                outcome_tags: empty_string_vec(2), // outcome tags
+                categories: empty_string_vec(2), // categories
+                end_time: 1609951265967.into(), // end_time
+                resolution_time: 1619882574000.into(), // resolution_time (~1 day after end_time)
+                collateral_token_id: token(), // collateral_token_id
+                swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
+                is_scalar: None // is_scalar
+            }
         );
 
         testing_env!(get_context(token(), 0));
