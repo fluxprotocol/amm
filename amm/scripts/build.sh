@@ -1,5 +1,5 @@
 #!/bin/bash
 set -e
-
-RUSTFLAGS='-C link-arg=-s' cargo +stable build --target wasm32-unknown-unknown --release
-cp ../target/wasm32-unknown-unknown/release/amm.wasm ../res/
+cd ../
+bash build.sh
+cp target/wasm32-unknown-unknown/release/amm.wasm res/

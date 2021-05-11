@@ -7,10 +7,10 @@ use near_sdk_sim::{to_yocto, view};
 fn pool_initial_state_test() {
     let init_res = init("carol".to_string());
     let oracle = init_res.oracle_contract;
+
     let res = create_market(&init_res.alice, &init_res.amm_contract, 2, Some(U128(0)));
-
     println!("create market result: {:?}", res);
-
+    
     let dr_exists: bool = view!(oracle.dr_exists(U64(0))).unwrap_json();
     println!("the dr exists: {}", dr_exists);
     

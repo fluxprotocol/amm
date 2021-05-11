@@ -27,6 +27,8 @@ impl AMMContract {
         assert_self();
         assert_eq!(env::promise_results_count(), 1, "ERR_PROMISE_INVALID");
 
+        env::log(format!("{:?}", env::promise_result(0)).as_bytes());
+
         // Maybe we don't need to check. We could also assume that
         // the oracle promise handles the validation..
         let oracle_config = match env::promise_result(0) {
