@@ -12,7 +12,7 @@ mod data_request;
 mod fungible_token_receiver;
 mod callback_args;
 mod whitelist;
-mod oracle_config;
+pub mod oracle_config;
 mod storage_manager;
 mod helpers;
 mod logger;

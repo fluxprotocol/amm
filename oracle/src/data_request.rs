@@ -218,7 +218,7 @@ impl DataRequestChange for DataRequest {
             resolution_windows,
             global_config_id,
             request_config: DataRequestConfig {
-                default_challenge_window_duration: config.default_challenge_window_duration,
+                default_challenge_window_duration: config.default_challenge_window_duration.into(),
                 final_arbitrator_invoke_amount: config.final_arbitrator_invoke_amount.into(),
                 final_arbitrator: config.final_arbitrator.to_string(),
                 validity_bond: config.validity_bond.into(),
@@ -495,6 +495,10 @@ impl DataRequestView for DataRequest {
 
 #[near_bindgen]
 impl Contract {
+    pub fn dr_exists(&self, id: U64) -> bool {
+        self.data_requests.get(id.into()).is_some()
+    }
+
     // Merge config and payload
     pub fn dr_new(&mut self, sender: AccountId, amount: Balance, payload: NewDataRequestArgs) -> Balance {
         let config = self.get_config();
@@ -670,8 +674,8 @@ mod mock_token_basic_tests {
             stake_token: token(),
             validity_bond: U128(100),
             max_outcomes: 8,
-            default_challenge_window_duration: 1000,
-            min_initial_challenge_window_duration: 1000,
+            default_challenge_window_duration: U64(1000),
+            min_initial_challenge_window_duration: U64(1000),
             final_arbitrator_invoke_amount: U128(250),
             resolution_fee_percentage: 10_000,
         }

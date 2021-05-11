@@ -87,8 +87,8 @@ pub fn log_oracle_config(config: &OracleConfig, id: u64) {
                 "bond_token": config.bond_token,
                 "validity_bond": config.validity_bond,
                 "max_outcomes": config.max_outcomes,
-                "default_challenge_window_duration": U64(config.default_challenge_window_duration),
-                "min_initial_challenge_window_duration": U64(config.min_initial_challenge_window_duration),
+                "default_challenge_window_duration": config.default_challenge_window_duration,
+                "min_initial_challenge_window_duration": config.min_initial_challenge_window_duration,
                 "final_arbitrator_invoke_amount": config.final_arbitrator_invoke_amount,
                 "resolution_fee_percentage": config.resolution_fee_percentage,
                 

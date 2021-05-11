@@ -92,8 +92,8 @@ mod mock_token_basic_tests {
             stake_token: token(),
             validity_bond: U128(100),
             max_outcomes: 8,
-            default_challenge_window_duration: 1000,
-            min_initial_challenge_window_duration: 1000,
+            default_challenge_window_duration: U64(1000),
+            min_initial_challenge_window_duration: U64(1000),
             final_arbitrator_invoke_amount: U128(250),
             resolution_fee_percentage: 0,
         }
