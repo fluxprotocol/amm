@@ -5,7 +5,7 @@ use near_sdk::serde::{ Serialize, Deserialize };
 #[ext_contract(ext_self)]
 trait ProtocolResolver {
     fn proceed_blah() -> Promise;
-    fn proceed_market_creation(&mut self, bond_token: AccountId, bond_in: Balance, args: msg_structs::CreateMarket) -> PromiseOrValue<u8>;
+    fn proceed_market_creation(&mut self, bond_token: AccountId, bond_in: Balance, payload: CreateMarketArgs) -> PromiseOrValue<u8>;
 }
 
 #[derive(Serialize, Deserialize)]
@@ -23,11 +23,9 @@ impl AMMContract {
         env::log("Tralalala".as_bytes());
     }
 
-    pub fn proceed_market_creation(&mut self, bond_token: AccountId, bond_in: Balance, args: msg_structs::CreateMarket) -> Promise {
+    pub fn proceed_market_creation(&mut self, bond_token: AccountId, bond_in: Balance, payload: CreateMarketArgs) -> Promise {
         assert_self();
         assert_eq!(env::promise_results_count(), 1, "ERR_PROMISE_INVALID");
-
-        env::log(format!("{:?}", env::promise_result(0)).as_bytes());
 
         // Maybe we don't need to check. We could also assume that
         // the oracle promise handles the validation..
@@ -58,7 +56,7 @@ impl AMMContract {
         // TODO: We need a storage manager
 
         // Create market
-        // self.create_market(args);
+        // self.create_market(payload);
 
         // TODO: Refund what is left over of token
         // TODO: Refund storage
@@ -69,21 +67,22 @@ impl AMMContract {
 
 
 impl AMMContract {
-    pub fn create_market(&mut self, args: msg_structs::CreateMarket) {
-        let end_time: u64 = args.end_time.into();
-        let swap_fee: u128 = args.swap_fee.into();
+    pub fn create_market(&mut self, payload: CreateMarketArgs) -> U64 {
+        self.assert_unpaused();
+        let end_time: u64 = payload.end_time.into();
+        let resolution_time: u64 = payload.resolution_time.into();
+        let swap_fee: u128 = payload.swap_fee.into();
         let market_id = self.markets.len();
-        let token_decimals = self.collateral_whitelist.0.get(&args.collateral_token_id);
-
+        let token_decimals = self.collateral_whitelist.0.get(&payload.collateral_token_id);
         assert!(token_decimals.is_some(), "ERR_INVALID_COLLATERAL");
-        assert!(args.outcome_tags.len() as u16 == args.outcomes, "ERR_INVALID_TAG_LENGTH");
+        assert!(payload.outcome_tags.len() as u16 == payload.outcomes, "ERR_INVALID_TAG_LENGTH");
         assert!(end_time > ns_to_ms(env::block_timestamp()), "ERR_INVALID_END_TIME");
-        let initial_storage = env::storage_usage();
+        assert!(resolution_time >= end_time, "ERR_INVALID_RESOLUTION_TIME");
 
         let pool = pool_factory::new_pool(
             market_id,
-            args.outcomes,
-            args.collateral_token_id,
+            payload.outcomes,
+            payload.collateral_token_id,
             token_decimals.unwrap(),
             swap_fee
         );
@@ -91,40 +90,38 @@ impl AMMContract {
         logger::log_pool(&pool);
 
         let market = Market {
-            end_time: args.end_time.into(),
+            end_time: payload.end_time.into(),
+            resolution_time: payload.resolution_time.into(),
             pool,
             payout_numerator: None,
             finalized: false
         };
 
-        logger::log_create_market(&market, args.description, args.extra_info, args.outcome_tags, args.categories, args.is_scalar);
+        logger::log_create_market(&market, payload.description, payload.extra_info, payload.outcome_tags, payload.categories, payload.is_scalar);
         logger::log_market_status(&market);
 
         self.markets.push(&market);
 
-        self.refund_storage(initial_storage, env::predecessor_account_id());
+        (self.markets.len() - 1).into()
     }
 
     pub fn ft_create_market_callback(
         &mut self, 
         sender: &AccountId, 
         bond_in: Balance, 
-        args: serde_json::Value,
-        initial_storage_usage: StorageUsage, 
-        initial_user_balance: Balance,
+        payload: CreateMarketArgs
     ) -> Promise {
         self.assert_unpaused();
 
         // TODO: Check storage before starting the promise chain
-        // Maybe also pre validate the args
+        // Maybe also pre validate the payload
 
-        let parsed_args: msg_structs::CreateMarket = msg_structs::from_args(args);
         let bond_token_id = env::predecessor_account_id();
 
         // TODO: We should double check the transfering process
         // Need to investigate the refunding "Refund 1 from pulse.franklinwaller2.testnet to franklinwaller2.testnet"
 
         oracle::fetch_oracle_config("oracle")
-            .then(ext_self::proceed_market_creation(bond_token_id, bond_in, parsed_args, &env::current_account_id(), 0, 50_000_000_000_000))
+            .then(ext_self::proceed_market_creation(bond_token_id, bond_in, payload, &env::current_account_id(), 0, 50_000_000_000_000))
     }
 }
