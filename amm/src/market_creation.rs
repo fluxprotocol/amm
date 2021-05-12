@@ -5,7 +5,7 @@ use near_sdk::serde::{ Serialize, Deserialize };
 #[ext_contract(ext_self)]
 trait ProtocolResolver {
     fn proceed_market_creation_step2(market_args: CreateMarketArgs) -> Promise;
-    fn proceed_market_creation(&mut self, bond_token: AccountId, bond_in: Balance, market_args: CreateMarketArgs) -> PromiseOrValue<u8>;
+    fn proceed_market_creation(&mut self, sender: AccountId, bond_token: AccountId, bond_in: Balance, market_args: CreateMarketArgs) -> PromiseOrValue<u8>;
 }
 
 #[derive(Serialize, Deserialize)]
@@ -17,9 +17,9 @@ pub struct OracleConfig {
 
 #[near_bindgen]
 impl AMMContract {
-    pub fn proceed_market_creation(&mut self, bond_token: AccountId, bond_in: Balance, market_args: CreateMarketArgs) -> Promise {
+    pub fn proceed_market_creation(&mut self, sender: AccountId, bond_token: AccountId, bond_in: Balance, market_args: CreateMarketArgs) -> Promise {
         assert_self();
-        assert_eq!(env::promise_results_count(), 1, "ERR_PROMISE_INVALID");
+        assert_prev_promise_successful();
 
         // Maybe we don't need to check. We could also assume that
         // the oracle promise handles the validation..
@@ -39,35 +39,26 @@ impl AMMContract {
         assert_eq!(oracle_config.bond_token, bond_token, "ERR_INVALID_BOND_TOKEN");
         assert!(validity_bond < bond_in, "ERR_NOT_ENOUGH_BOND");
 
-        env::log(format!("Gas ug{} pg{} left{}", env::used_gas(), env::prepaid_gas(), env::prepaid_gas() - env::used_gas()).as_bytes());
-
-        self.create_data_request(bond_token, validity_bond, &market_args)        
-        .then(
-            ext_self::proceed_market_creation_step2(market_args, &env::current_account_id(), 0, 25_000_000_000_000)
-        )
-
-        // TODO: We need a storage manager
-
-        // Create market
-        // self.create_market(payload);
-
-        // TODO: Refund what is left over of token
-        // TODO: Refund storage
-
-        // PromiseOrValue::Value(bond_in - validity_bond)
+        self.create_data_request(&bond_token, validity_bond, &market_args)
+            // Refund the remaining tokens
+            .then(fungible_token::fungible_token_transfer(&bond_token, sender, bond_in - validity_bond))
+            .then(ext_self::proceed_market_creation_step2(market_args, &env::current_account_id(), 0, 25_000_000_000_000))
     }
 
     pub fn proceed_market_creation_step2(&mut self, market_args: CreateMarketArgs) {
+        assert_self();
         assert_prev_promise_successful();
 
-        env::log(format!("Gas ug{} pg{} left{}", env::used_gas(), env::prepaid_gas(), env::prepaid_gas() - env::used_gas()).as_bytes());
+        // TODO: Storage check
         self.create_market(market_args);
+
+        // TODO: Storage withdraw
     }
 }
 
 
 impl AMMContract {
-    pub fn create_market(&mut self, payload: CreateMarketArgs) -> U64 {
+    pub fn create_market(&mut self, payload: CreateMarketArgs) {
         self.assert_unpaused();
         let swap_fee: u128 = payload.swap_fee.into();
         let market_id = self.markets.len();
@@ -95,8 +86,6 @@ impl AMMContract {
         logger::log_market_status(&market);
 
         self.markets.push(&market);
-
-        (self.markets.len() - 1).into()
     }
 
     pub fn ft_create_market_callback(
@@ -116,16 +105,7 @@ impl AMMContract {
         assert!(end_time > ns_to_ms(env::block_timestamp()), "ERR_INVALID_END_TIME");
         assert!(resolution_time >= end_time, "ERR_INVALID_RESOLUTION_TIME");
 
-        // TODO: Check storage before starting the promise chain
-
-        let bond_token_id = env::predecessor_account_id();
-
-        // TODO: Use sender
-
-        // TODO: We should double check the transfering process
-        // Need to investigate the refunding "Refund 1 from pulse.franklinwaller2.testnet to franklinwaller2.testnet"
-
         oracle::fetch_oracle_config(&self.oracle)
-            .then(ext_self::proceed_market_creation(bond_token_id, bond_in, payload, &env::current_account_id(), 0, 200_000_000_000_000))
+            .then(ext_self::proceed_market_creation(sender.to_string(), env::predecessor_account_id(), bond_in, payload, &env::current_account_id(), 0, 200_000_000_000_000))
     }
 }

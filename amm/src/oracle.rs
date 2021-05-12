@@ -13,7 +13,7 @@ pub fn fetch_oracle_config(oracle_contract_id: &str) -> Promise {
 const GAS_BASE_CREATE_REQUEST: Gas = 50_000_000_000_000;
 
 impl AMMContract {
-    pub fn create_data_request(&self, bond_token: AccountId, amount: Balance, market_args: &CreateMarketArgs) -> Promise {
+    pub fn create_data_request(&self, bond_token: &AccountId, amount: Balance, market_args: &CreateMarketArgs) -> Promise {
         let is_scalar = market_args.is_scalar.unwrap_or(false);
         let outcomes: Vec<String> = if is_scalar {
             // TODO: What should we do with scalar markets?
@@ -23,7 +23,7 @@ impl AMMContract {
         };
 
         // Should do a fungible token transfer to the oracle
-        fungible_token::fungible_token_transfer(
+        fungible_token::fungible_token_transfer_call(
             bond_token, 
             self.oracle.to_string(), 
             amount,

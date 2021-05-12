@@ -16,8 +16,6 @@ use near_sdk::serde::{
     }
 };
 
-// TODO: change to how oracle arguments work
-
 /**
  * @notice initial struct that's used to decide what function to call
  */
