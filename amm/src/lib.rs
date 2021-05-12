@@ -52,6 +52,7 @@ pub trait CollateralToken {
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize, PanicOnDefault)]
 pub struct AMMContract {
+    oracle: AccountId, // The Flux Oracle address
     gov: AccountId, // The gov of all markets
     markets: Vector<Market>, // Vector containing all markets where the index represents the market id
     collateral_whitelist: Whitelist, // Map a token's account id to number of decimals it's denominated in
@@ -69,7 +70,8 @@ impl AMMContract {
     #[init]
     pub fn init(
         gov: ValidAccountId, 
-        tokens: Vec<collateral_whitelist::Token>, 
+        tokens: Vec<collateral_whitelist::Token>,
+        oracle: ValidAccountId,
     ) -> Self {
         assert!(!env::state_exists(), "ERR_CONTRACT_IS_INITIALIZED");
         let collateral_whitelist: Whitelist = Whitelist::new(tokens);
@@ -77,6 +79,7 @@ impl AMMContract {
         logger::log_whitelist(&collateral_whitelist);
 
         Self {
+            oracle: oracle.into(),
             gov: gov.into(),
             markets: Vector::new(b"m".to_vec()),
             collateral_whitelist: collateral_whitelist, 

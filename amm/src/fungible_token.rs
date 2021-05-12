@@ -15,7 +15,7 @@ pub trait FungibleToken {
 
 const GAS_BASE_TRANSFER: Gas = 35_000_000_000_000;
 
-pub fn fungible_token_transfer(token_account_id: AccountId, receiver_id: AccountId, value: u128, msg: String) -> Promise {
+pub fn fungible_token_transfer(token_account_id: AccountId, receiver_id: AccountId, value: u128, msg: String, gas: Option<Gas>) -> Promise {
     fungible_token::ft_transfer_call(
         receiver_id,
         U128(value),
@@ -24,6 +24,6 @@ pub fn fungible_token_transfer(token_account_id: AccountId, receiver_id: Account
         // Near params
         &token_account_id,
         1,
-        GAS_BASE_TRANSFER
+        gas.unwrap_or(GAS_BASE_TRANSFER)
     )
 }

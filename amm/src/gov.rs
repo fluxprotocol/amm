@@ -10,6 +10,18 @@ impl AMMContract {
     }
 
     /**
+     * @notice sets the `oracle` account id
+     * @param `new_oracle` The new oracle
+     */
+    pub fn set_oracle(
+        &mut self, 
+        new_oracle: ValidAccountId
+    ) {
+        self.assert_gov();
+        self.oracle = new_oracle.into();
+    }
+
+    /**
      * @notice sets the `gov` `AccountId`, only callable by previous gov
      * @param `AccountId` of the new `gov`
      */
