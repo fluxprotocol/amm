@@ -58,6 +58,21 @@ impl AMMContract {
 
 
 impl AMMContract {
+    /**
+     * @notice allows users to create new markets, can only be called internally
+     * This function assumes the market data has been validated beforehand (ft_create_market_callback)
+     * @param description is a detailed description of the market
+     * @param extra_info extra information on how the market should be resoluted
+     * @param outcomes the number of possible outcomes for the market
+     * @param outcome_tags is a list of outcomes where the index is the `outcome_id`
+     * @param categories is a list of categories to filter the market by
+     * @param end_time when the trading should stop
+     * @param resolution_time when the market can be resolved
+     * @param collateral_token_id the `account_id` of the whitelisted token that is used as collateral for trading
+     * @param swap_fee the fee that's taken from every swap and paid out to LPs
+     * @param is_scalar if the market is a scalar market (range)
+     * @returns wrapped `market_id` 
+     */
     pub fn create_market(&mut self, payload: CreateMarketArgs) {
         self.assert_unpaused();
         let swap_fee: u128 = payload.swap_fee.into();

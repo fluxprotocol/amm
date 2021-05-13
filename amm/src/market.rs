@@ -1,5 +1,5 @@
 use crate::*;
-use crate::types::{ Timestamp, WrappedBalance, WrappedTimestamp };
+use crate::types::{ Timestamp, WrappedBalance };
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Market {
@@ -144,68 +144,6 @@ impl AMMContract {
         let market = self.get_market_expect(market_id);
         U128(market.pool.get_fees_withdrawable(account_id))
     }
-
-    /**
-     * @notice allows users to create new markets
-     * @param description is a detailed description of the market
-     * @param extra_info extra information on how the market should be resoluted
-     * @param outcomes the number of possible outcomes for the market
-     * @param outcome_tags is a list of outcomes where the index is the `outcome_id`
-     * @param categories is a list of categories to filter the market by
-     * @param end_time when the trading should stop
-     * @param resolution_time when the market can be resolved
-     * @param collateral_token_id the `account_id` of the whitelisted token that is used as collateral for trading
-     * @param swap_fee the fee that's taken from every swap and paid out to LPs
-     * @param is_scalar if the market is a scalar market (range)
-     * @returns wrapped `market_id` 
-     */
-    // #[payable]
-    // pub fn create_market(
-    //     &mut self,
-    //     description: String,
-    //     extra_info: String,
-    //     outcomes: u16,
-    //     outcome_tags: Vec<String>,
-    //     categories: Vec<String>,
-    //     end_time: U64,
-    //     collateral_token_id: AccountId,
-    //     swap_fee: U128,
-    //     is_scalar: Option<bool>,
-    // ) -> U64 {
-    //     self.assert_unpaused();
-    //     let end_time: u64 = end_time.into();
-    //     let swap_fee: u128 = swap_fee.into();
-    //     let market_id = self.markets.len();
-    //     let token_decimals = self.collateral_whitelist.0.get(&collateral_token_id);
-    //     assert!(token_decimals.is_some(), "ERR_INVALID_COLLATERAL");
-    //     assert!(outcome_tags.len() as u16 == outcomes, "ERR_INVALID_TAG_LENGTH");
-    //     assert!(end_time > ns_to_ms(env::block_timestamp()), "ERR_INVALID_END_TIME");
-    //     let initial_storage = env::storage_usage();
-
-    //     let pool = pool_factory::new_pool(
-    //         market_id,
-    //         outcomes,
-    //         collateral_token_id,
-    //         token_decimals.unwrap(),
-    //         swap_fee
-    //     );
-
-    //     logger::log_pool(&pool);
-
-    //     let market = Market {
-    //         end_time,
-    //         pool,
-    //         payout_numerator: None,
-    //         finalized: false
-    //     };
-
-    //     logger::log_create_market(&market, description, extra_info, outcome_tags, categories, is_scalar);
-    //     logger::log_market_status(&market);
-        
-    //     self.markets.push(&market);
-    //     helper::refund_storage(initial_storage, env::predecessor_account_id());
-    //     market_id.into()
-    // }
 
     /**
      * @notice sell `outcome_shares` for collateral
