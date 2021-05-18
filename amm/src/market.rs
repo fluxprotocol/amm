@@ -442,6 +442,10 @@ mod market_basic_tests {
         "token.near".to_string()
     }
 
+    fn oracle() -> AccountId {
+        "oracle.near".to_string()
+    }
+
     fn empty_string() -> String {
         "".to_string()
     }
@@ -481,7 +485,8 @@ mod market_basic_tests {
 
         let mut contract = AMMContract::init(
             bob().try_into().unwrap(),
-            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}]
+            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}],
+            oracle().try_into().unwrap()
         );
 
         contract.create_market(
@@ -507,7 +512,8 @@ mod market_basic_tests {
 
         let mut contract = AMMContract::init(
             bob().try_into().unwrap(),
-            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}]
+            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}],
+            oracle().try_into().unwrap()
         );
 
         let market_id = contract.create_market(
@@ -546,7 +552,8 @@ mod market_basic_tests {
 
         let mut contract = AMMContract::init(
             bob().try_into().unwrap(),
-            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}]
+            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}],
+            oracle().try_into().unwrap()
         );
 
         let market_id = contract.create_market(
@@ -572,7 +579,8 @@ mod market_basic_tests {
 
         let mut contract = AMMContract::init(
             bob().try_into().unwrap(),
-            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}]
+            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}],
+            oracle().try_into().unwrap()
         );
 
         let market_id = contract.create_market(
@@ -617,7 +625,8 @@ mod market_basic_tests {
 
         let mut contract = AMMContract::init(
             bob().try_into().unwrap(),
-            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}]
+            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}],
+            oracle().try_into().unwrap()
         );
 
         let market_id = contract.create_market(
