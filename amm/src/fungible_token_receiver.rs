@@ -110,6 +110,10 @@ mod mock_token_basic_tests {
         "token.near".to_string()
     }
 
+    fn oracle() -> AccountId {
+        "oracle.near".to_string()
+    }
+
     fn empty_string() -> String {
         "".to_string()
     }
@@ -153,20 +157,23 @@ mod mock_token_basic_tests {
         testing_env!(get_context(token()));
         let mut contract = AMMContract::init(
             bob().try_into().unwrap(),
-            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}]
+            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}],
+            oracle().try_into().unwrap()
         );
 
         contract.create_market(
-            empty_string(), // market description
-            empty_string(), // extra info
-            2, // outcomes
-            empty_string_vec(2), // outcome tags
-            empty_string_vec(2), // categories
-            1609951265967.into(), // end_time
-            1619882574000.into(), // resolution_time (~1 day after end_time)
-            token(), // collateral_token_id
-            (10_u128.pow(24) / 50).into(), // swap fee, 2%
-            None // is_scalar
+            CreateMarketArgs {
+                description: empty_string(),
+                extra_info: empty_string(),
+                outcomes: 2,
+                outcome_tags: empty_string_vec(2),
+                categories: empty_string_vec(2),
+                end_time: 1609951265967.into(),
+                resolution_time: 1619882574000.into(), // (~1 day after end_time)
+                collateral_token_id: token(),
+                swap_fee: (10_u128.pow(24) / 50).into(), // 2%
+                is_scalar: None
+            }
         );
 
         let msg = serde_json::json!({
@@ -183,20 +190,23 @@ mod mock_token_basic_tests {
         testing_env!(get_context(token()));
         let mut contract = AMMContract::init(
             bob().try_into().unwrap(),
-            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}]
+            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}],
+            oracle().try_into().unwrap()
         );
 
         contract.create_market(
-            empty_string(), // market description
-            empty_string(), // extra info
-            2, // outcomes
-            empty_string_vec(2), // outcome tags
-            empty_string_vec(2), // categories
-            1609951265967.into(), // end_time
-            1619882574000.into(), // resolution_time (~1 day after end_time)
-            token(), // collateral_token_id
-            (10_u128.pow(24) / 50).into(), // swap fee, 2%
-            None // is_scalar
+            CreateMarketArgs {
+                description: empty_string(),
+                extra_info: empty_string(),
+                outcomes: 2,
+                outcome_tags: empty_string_vec(2),
+                categories: empty_string_vec(2),
+                end_time: 1609951265967.into(),
+                resolution_time: 1619882574000.into(), // (~1 day after end_time)
+                collateral_token_id: token(),
+                swap_fee: (10_u128.pow(24) / 50).into(), // 2%
+                is_scalar: None
+            }
         );
 
         let storage_start = 10u128.pow(24);

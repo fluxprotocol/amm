@@ -131,6 +131,10 @@ mod mock_token_basic_tests {
         "token.near".to_string()
     }
 
+    fn oracle() -> AccountId {
+        "oracle.near".to_string()
+    }
+
     fn _target() -> AccountId {
         "target.near".to_string()
     }
@@ -170,7 +174,8 @@ mod mock_token_basic_tests {
 
         let mut contract = AMMContract::init(
             to_valid(bob()),
-            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}]
+            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}],
+            oracle().try_into().unwrap()
         );
 
         let balance = contract.accounts.get(&alice()).unwrap_or(0);
@@ -203,7 +208,8 @@ mod mock_token_basic_tests {
 
         let mut contract = AMMContract::init(
             to_valid(bob()),
-            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}]
+            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}],
+            oracle().try_into().unwrap()
         );
 
         let balance = contract.accounts.get(&alice()).unwrap_or(0);
@@ -234,7 +240,8 @@ mod mock_token_basic_tests {
 
         let mut contract = AMMContract::init(
             to_valid(bob()),
-            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}]
+            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}],
+            oracle().try_into().unwrap()
         );
 
         let balance = contract.accounts.get(&alice()).unwrap_or(0);
