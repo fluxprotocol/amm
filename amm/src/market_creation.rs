@@ -5,7 +5,7 @@ use near_sdk::serde::{ Serialize, Deserialize };
 #[ext_contract(ext_self)]
 trait ProtocolResolver {
     fn proceed_market_creation_step2(market_args: CreateMarketArgs) -> Promise;
-    fn proceed_market_creation(&mut self, sender: AccountId, bond_token: AccountId, bond_in: Balance, market_args: CreateMarketArgs) -> PromiseOrValue<u8>;
+    fn proceed_market_creation(&mut self, sender: AccountId, bond_token: AccountId, bond_in: WrappedBalance, market_args: CreateMarketArgs) -> PromiseOrValue<u8>;
 }
 
 #[derive(Serialize, Deserialize)]
@@ -17,7 +17,7 @@ pub struct OracleConfig {
 
 #[near_bindgen]
 impl AMMContract {
-    pub fn proceed_market_creation(&mut self, sender: AccountId, bond_token: AccountId, bond_in: Balance, market_args: CreateMarketArgs) -> Promise {
+    pub fn proceed_market_creation(&mut self, sender: AccountId, bond_token: AccountId, bond_in: WrappedBalance, market_args: CreateMarketArgs) -> Promise {
         assert_self();
         assert_prev_promise_successful();
 
@@ -35,14 +35,23 @@ impl AMMContract {
         };
 
         let validity_bond: u128 = oracle_config.validity_bond.into();
+        let bond_in: u128 = bond_in.into();
 
         assert_eq!(oracle_config.bond_token, bond_token, "ERR_INVALID_BOND_TOKEN");
-        assert!(validity_bond < bond_in, "ERR_NOT_ENOUGH_BOND");
+        assert!(validity_bond <= bond_in, "ERR_NOT_ENOUGH_BOND");
 
-        self.create_data_request(&bond_token, validity_bond, &market_args)
-            // Refund the remaining tokens
-            .then(fungible_token::fungible_token_transfer(&bond_token, sender, bond_in - validity_bond))
-            .then(ext_self::proceed_market_creation_step2(market_args, &env::current_account_id(), 0, 25_000_000_000_000))
+        let remaining_bond: u128 = bond_in - validity_bond;
+        let create_promise = self.create_data_request(&bond_token, validity_bond, &market_args);
+
+        // Refund the remaining tokens
+        if remaining_bond > 0 {
+            create_promise
+                .then(fungible_token::fungible_token_transfer(&bond_token, sender, remaining_bond))
+                .then(ext_self::proceed_market_creation_step2(market_args, &env::current_account_id(), 0, 25_000_000_000_000))
+        } else {
+            create_promise
+                .then(ext_self::proceed_market_creation_step2(market_args, &env::current_account_id(), 0, 25_000_000_000_000))
+        }
     }
 
     pub fn proceed_market_creation_step2(&mut self, market_args: CreateMarketArgs) {
@@ -121,6 +130,6 @@ impl AMMContract {
         assert!(resolution_time >= end_time, "ERR_INVALID_RESOLUTION_TIME");
 
         oracle::fetch_oracle_config(&self.oracle)
-            .then(ext_self::proceed_market_creation(sender.to_string(), env::predecessor_account_id(), bond_in, payload, &env::current_account_id(), 0, 200_000_000_000_000))
+            .then(ext_self::proceed_market_creation(sender.to_string(), env::predecessor_account_id(), U128(bond_in), payload, &env::current_account_id(), 0, 200_000_000_000_000))
     }
 }

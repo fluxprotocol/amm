@@ -36,7 +36,7 @@ impl AMMContract {
                     "target_contract": env::current_account_id(),
                     "outcomes": outcomes,
                     "sources": [],
-                    "description": market_args.extra_info,
+                    "description": format!("{} - {}", market_args.description, market_args.extra_info),
                 },
             }).to_string(),
             Some(GAS_BASE_CREATE_REQUEST),
