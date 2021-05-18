@@ -15,10 +15,10 @@ const GAS_BASE_CREATE_REQUEST: Gas = 50_000_000_000_000;
 impl AMMContract {
     pub fn create_data_request(&self, bond_token: &AccountId, amount: Balance, market_args: &CreateMarketArgs) -> Promise {
         let is_scalar = market_args.is_scalar.unwrap_or(false);
-        let outcomes: Vec<String> = if is_scalar {
-            [].to_vec()
+        let outcomes: Option<Vec<String>> = if is_scalar {
+            None
         } else {
-            market_args.outcome_tags.clone()
+            Some(market_args.outcome_tags.clone())
         };
 
         // Should do a fungible token transfer to the oracle
