@@ -31,6 +31,7 @@ mod fungible_token_receiver;
 mod oracle;
 mod market_creation;
 mod fungible_token;
+mod storage_manager;
 
 pub mod collateral_whitelist; // pub for integration tests 
 pub mod math; // pub for integration tests

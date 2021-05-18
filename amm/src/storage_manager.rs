@@ -92,6 +92,20 @@ impl StorageManager for AMMContract {
     }
 }
 
+impl AMMContract {
+    pub fn use_storage(&mut self, sender_id: &AccountId, initial_storage_usage: u64, initial_user_balance: u128) {
+        if env::storage_usage() >= initial_storage_usage {
+            // used more storage, deduct from balance
+            let difference : u128 = u128::from(env::storage_usage() - initial_storage_usage);
+            self.accounts.insert(sender_id, &(initial_user_balance - difference * STORAGE_PRICE_PER_BYTE));
+        } else {
+            // freed up storage, add to balance
+            let difference : u128 = u128::from(initial_storage_usage - env::storage_usage());
+            self.accounts.insert(sender_id, &(initial_user_balance + difference * STORAGE_PRICE_PER_BYTE));
+        }
+    }
+}
+
 #[cfg(not(target_arch = "wasm32"))]
 #[cfg(test)]
 mod mock_token_basic_tests {

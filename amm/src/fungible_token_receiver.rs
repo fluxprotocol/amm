@@ -82,15 +82,7 @@ impl FungibleTokenReceiver for AMMContract {
             Payload::CreateMarketArgs(payload) => self.ft_create_market_callback(&sender_id, amount, payload).into()
         };
 
-        if env::storage_usage() >= initial_storage_usage {
-            // used more storage, deduct from balance
-            let difference : u128 = u128::from(env::storage_usage() - initial_storage_usage);
-            self.accounts.insert(&sender_id, &(initial_user_balance - difference * STORAGE_PRICE_PER_BYTE));
-        } else {
-            // freed up storage, add to balance
-            let difference : u128 = u128::from(initial_storage_usage - env::storage_usage());
-            self.accounts.insert(&sender_id, &(initial_user_balance + difference * STORAGE_PRICE_PER_BYTE));
-        }
+        self.use_storage(&sender_id, initial_storage_usage, initial_user_balance);
 
         0.into()
     }

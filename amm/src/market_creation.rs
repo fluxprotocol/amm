@@ -4,7 +4,7 @@ use near_sdk::serde::{ Serialize, Deserialize };
 
 #[ext_contract(ext_self)]
 trait ProtocolResolver {
-    fn proceed_market_creation_step2(market_args: CreateMarketArgs) -> Promise;
+    fn proceed_market_creation_step2(sender: AccountId, market_args: CreateMarketArgs) -> Promise;
     fn proceed_market_creation(&mut self, sender: AccountId, bond_token: AccountId, bond_in: WrappedBalance, market_args: CreateMarketArgs) -> PromiseOrValue<u8>;
 }
 
@@ -46,22 +46,24 @@ impl AMMContract {
         // Refund the remaining tokens
         if remaining_bond > 0 {
             create_promise
-                .then(fungible_token::fungible_token_transfer(&bond_token, sender, remaining_bond))
-                .then(ext_self::proceed_market_creation_step2(market_args, &env::current_account_id(), 0, 25_000_000_000_000))
+                .then(fungible_token::fungible_token_transfer(&bond_token, sender.to_string(), remaining_bond))
+                // We trigger the proceeding last so we can check the promise for failures
+                .then(ext_self::proceed_market_creation_step2(sender.to_string(), market_args, &env::current_account_id(), 0, 25_000_000_000_000))
         } else {
             create_promise
-                .then(ext_self::proceed_market_creation_step2(market_args, &env::current_account_id(), 0, 25_000_000_000_000))
+                .then(ext_self::proceed_market_creation_step2(sender, market_args, &env::current_account_id(), 0, 25_000_000_000_000))
         }
     }
 
-    pub fn proceed_market_creation_step2(&mut self, market_args: CreateMarketArgs) {
+    pub fn proceed_market_creation_step2(&mut self, sender: AccountId, market_args: CreateMarketArgs) {
         assert_self();
         assert_prev_promise_successful();
 
-        // TODO: Storage check
-        self.create_market(market_args);
+        let initial_storage_usage = env::storage_usage();
+        let initial_user_balance = self.accounts.get(&sender).unwrap_or(0);
 
-        // TODO: Storage withdraw
+        self.create_market(market_args);
+        self.use_storage(&sender, initial_storage_usage, initial_user_balance);
     }
 }
 
