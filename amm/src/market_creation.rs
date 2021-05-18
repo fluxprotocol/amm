@@ -84,7 +84,7 @@ impl AMMContract {
      * @param is_scalar if the market is a scalar market (range)
      * @returns wrapped `market_id` 
      */
-    pub fn create_market(&mut self, payload: CreateMarketArgs) {
+    pub fn create_market(&mut self, payload: CreateMarketArgs) -> U64 {
         self.assert_unpaused();
         let swap_fee: u128 = payload.swap_fee.into();
         let market_id = self.markets.len();
@@ -112,6 +112,7 @@ impl AMMContract {
         logger::log_market_status(&market);
 
         self.markets.push(&market);
+        market_id.into()
     }
 
     pub fn ft_create_market_callback(
