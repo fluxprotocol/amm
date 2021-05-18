@@ -132,6 +132,6 @@ impl AMMContract {
         assert!(resolution_time >= end_time, "ERR_INVALID_RESOLUTION_TIME");
 
         oracle::fetch_oracle_config(&self.oracle)
-            .then(ext_self::proceed_market_creation(sender.to_string(), env::predecessor_account_id(), U128(bond_in), payload, &env::current_account_id(), 0, 200_000_000_000_000))
+            .then(ext_self::proceed_market_creation(sender.to_string(), env::predecessor_account_id(), U128(bond_in), payload, &env::current_account_id(), 0, 150_000_000_000_000))
     }
 }
