@@ -1,7 +1,7 @@
 use super::*;
 use near_sdk::{Promise};
 use near_sdk::json_types::{ValidAccountId, U128};
-use near_sdk::serde::Serialize;
+use near_sdk::serde::{ Serialize };
 
 /// Price per 1 byte of storage from mainnet config after `0.18` release and protocol version `42`.
 /// It's 10 times lower than the genesis price.
@@ -11,19 +11,32 @@ pub const STORAGE_MINIMUM_BALANCE: Balance = 10_000_000_000_000_000_000_000;
 
 #[derive(Serialize)]
 #[serde(crate = "near_sdk::serde")]
-pub struct AccountStorageBalance {
+pub struct StorageBalance {
     total: U128,
     available: U128,
 }
 
+#[derive(BorshDeserialize, BorshSerialize)]
+pub struct AccountStorageBalance {
+    pub total: u128,
+    pub available: u128,
+}
+
+#[derive(Serialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct StorageBalanceBounds {
+    min: U128,
+    max: Option<U128>,
+}
+
 pub trait StorageManager {
-    fn storage_deposit(&mut self, account_id: Option<ValidAccountId>) -> AccountStorageBalance;
+    fn storage_deposit(&mut self, account_id: Option<ValidAccountId>) -> StorageBalance;
 
-    fn storage_withdraw(&mut self, amount: U128) -> AccountStorageBalance;
+    fn storage_withdraw(&mut self, amount: U128) -> StorageBalance;
 
-    fn storage_minimum_balance(&self) -> U128;
+    fn storage_balance_bounds(&self) -> StorageBalanceBounds;
 
-    fn storage_balance_of(&self, account_id: ValidAccountId) -> AccountStorageBalance;
+    fn storage_balance_of(&self, account_id: ValidAccountId) -> Option<StorageBalance>;
 }
 
 fn assert_one_yocto() {
@@ -38,71 +51,83 @@ fn assert_one_yocto() {
 impl StorageManager for AMMContract {
 
     #[payable]
-    fn storage_deposit(&mut self, account_id: Option<ValidAccountId>) -> AccountStorageBalance {
+    fn storage_deposit(&mut self, account_id: Option<ValidAccountId>) -> StorageBalance {
         let amount = env::attached_deposit();
         let account_id = account_id
             .map(|a| a.into())
             .unwrap_or_else(|| env::predecessor_account_id());
+        
+        let mut account = self.get_storage_account(&account_id);
 
-        let mut balance = self.accounts.get(&account_id).unwrap_or(0);
-        balance += amount;
-        self.accounts.insert(&account_id, &balance);
-        AccountStorageBalance {
-            total: balance.into(),
-            available: balance.into(),
+        account.available += amount;
+        account.total += amount;
+
+        self.accounts.insert(&account_id, &account);
+
+        StorageBalance {
+            total: U128(account.total),
+            available: U128(account.available),
         }
     }
 
     #[payable]
-    fn storage_withdraw(&mut self, amount: U128) -> AccountStorageBalance {
+    fn storage_withdraw(&mut self, amount: U128) -> StorageBalance {
         assert_one_yocto();
         let amount: Balance = amount.into();
         let account_id = env::predecessor_account_id();
+        let mut account = self.get_storage_account(&account_id);
 
-        let mut balance = self.accounts.get(&account_id).unwrap_or(0);
-        balance -= amount;
-        self.accounts.insert(&account_id, &balance);
-        Promise::new(account_id).transfer(amount + 1);
-        AccountStorageBalance {
-            total: balance.into(),
-            available: balance.into(),
+        account.available -= amount;
+        account.total -= amount;
+
+        self.accounts.insert(&account_id, &account);
+
+        Promise::new(account_id).transfer(amount);
+
+        StorageBalance {
+            total: U128(account.total),
+            available: U128(account.available),
         }
     }
 
-    fn storage_minimum_balance(&self) -> U128 {
-        U128(STORAGE_MINIMUM_BALANCE)
+    fn storage_balance_bounds(&self) -> StorageBalanceBounds {
+        StorageBalanceBounds {
+            min: U128(STORAGE_MINIMUM_BALANCE),
+            max: None,
+        }
     }
 
-    fn storage_balance_of(&self, account_id: ValidAccountId) -> AccountStorageBalance {
-        if let Some(balance) = self.accounts.get(account_id.as_ref()) {
-            AccountStorageBalance {
-                total: self.storage_minimum_balance(),
-                available: if balance > 0 {
-                    0.into()
-                } else {
-                    self.storage_minimum_balance()
-                },
-            }
-        } else {
-            AccountStorageBalance {
-                total: 0.into(),
-                available: 0.into(),
-            }
-        }
+    fn storage_balance_of(&self, account_id: ValidAccountId) -> Option<StorageBalance> {
+        self.accounts
+            .get(account_id.as_ref())
+            .map(|account| StorageBalance {
+                total: U128(account.total),
+                available: U128(account.available),
+            })
     }
 }
 
 impl AMMContract {
-    pub fn use_storage(&mut self, sender_id: &AccountId, initial_storage_usage: u64, initial_user_balance: u128) {
+    pub fn get_storage_account(&self, account_id: &AccountId) -> AccountStorageBalance {
+        self.accounts.get(account_id)
+            .unwrap_or(AccountStorageBalance { total: 0, available: 0 })
+    }
+
+    pub fn use_storage(&mut self, sender_id: &AccountId, initial_storage_usage: u64, initial_available_balance: u128) {
         if env::storage_usage() >= initial_storage_usage {
             // used more storage, deduct from balance
             let difference : u128 = u128::from(env::storage_usage() - initial_storage_usage);
-            env::log(format!("sender: {}, Diff: {}, init: {}", sender_id, difference * STORAGE_PRICE_PER_BYTE, initial_user_balance).as_bytes());
-            self.accounts.insert(sender_id, &(initial_user_balance - difference * STORAGE_PRICE_PER_BYTE));
+            let mut account = self.get_storage_account(sender_id);
+            account.available = initial_available_balance - difference * STORAGE_PRICE_PER_BYTE;
+
+            self.accounts.insert(sender_id, &account);
         } else {
             // freed up storage, add to balance
             let difference : u128 = u128::from(initial_storage_usage - env::storage_usage());
-            self.accounts.insert(sender_id, &(initial_user_balance + difference * STORAGE_PRICE_PER_BYTE));
+            let mut account = self.get_storage_account(sender_id);
+            account.available = initial_available_balance + difference * STORAGE_PRICE_PER_BYTE;
+
+            self.accounts.insert(sender_id, &account);
         }
     }
 }
@@ -179,7 +204,7 @@ mod mock_token_basic_tests {
             oracle().try_into().unwrap()
         );
 
-        let balance = contract.accounts.get(&alice()).unwrap_or(0);
+        let balance = contract.accounts.get(&alice()).unwrap_or(AccountStorageBalance { total: 0, available: 0 });
         assert_eq!(balance, 0);
 
         let amount = 10u128.pow(24);
@@ -190,7 +215,7 @@ mod mock_token_basic_tests {
         testing_env!(c);
         contract.storage_deposit(Some(to_valid(alice())));
 
-        let balance = contract.accounts.get(&alice()).unwrap_or(0);
+        let balance = contract.accounts.get(&alice()).unwrap_or(AccountStorageBalance { total: 0, available: 0 });
         assert_eq!(balance, amount);
 
         //deposit again
@@ -199,7 +224,7 @@ mod mock_token_basic_tests {
         testing_env!(c);
         contract.storage_deposit(Some(to_valid(alice())));
 
-        let balance = contract.accounts.get(&alice()).unwrap_or(0);
+        let balance = contract.accounts.get(&alice()).unwrap_or(AccountStorageBalance { total: 0, available: 0 });
         assert_eq!(balance, amount*2);
     }
 
@@ -213,9 +238,12 @@ mod mock_token_basic_tests {
             oracle().try_into().unwrap()
         );
 
-        let balance = contract.accounts.get(&alice()).unwrap_or(0);
-        assert_eq!(balance, 0);
+        let balance = contract.accounts.get(&alice()).unwrap_or(AccountStorageBalance {
+            total: 0,
+            available: 0,
+        });
 
+        assert_eq!(balance, 0);
         let amount = 10u128.pow(24);
 
         //deposit
@@ -230,7 +258,7 @@ mod mock_token_basic_tests {
         testing_env!(c);
 
         contract.storage_withdraw(U128(amount/2));
-        let balance = contract.accounts.get(&alice()).unwrap_or(0);
+        let balance = contract.accounts.get(&alice()).unwrap_or(AccountStorageBalance { total: 0, available: 0 });
         assert_eq!(balance, amount/2);
     }
 
@@ -245,7 +273,7 @@ mod mock_token_basic_tests {
             oracle().try_into().unwrap()
         );
 
-        let balance = contract.accounts.get(&alice()).unwrap_or(0);
+        let balance = contract.accounts.get(&alice()).unwrap_or(AccountStorageBalance { total: 0, available: 0 });
         assert_eq!(balance, 0);
 
         let amount = 10u128.pow(24);

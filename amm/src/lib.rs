@@ -42,6 +42,7 @@ use crate::helper::*;
 use crate::market::Market;
 use crate::pool::Pool;
 use crate::collateral_whitelist::Whitelist;
+use crate::storage_manager::AccountStorageBalance;
 
 const GAS_BASE_COMPUTE: Gas = 5_000_000_000_000;
 
@@ -58,7 +59,7 @@ pub struct AMMContract {
     markets: Vector<Market>, // Vector containing all markets where the index represents the market id
     collateral_whitelist: Whitelist, // Map a token's account id to number of decimals it's denominated in
     paused: bool, // If true certain functions are no longer callable, settable by `gov`
-    accounts: LookupMap<AccountId, Balance> // Storage map
+    accounts: LookupMap<AccountId, AccountStorageBalance> // Storage map
 }
 
 #[near_bindgen]
