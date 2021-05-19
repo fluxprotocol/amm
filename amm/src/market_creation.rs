@@ -74,6 +74,7 @@ impl AMMContract {
         let mut market = self.get_market_expect(market_id);
         market.enabled = true;
         self.markets.replace(market_id.into(), &market);
+        logger::log_market_status(&market);
     }
 }
 

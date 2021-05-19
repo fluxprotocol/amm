@@ -215,6 +215,7 @@ pub fn log_create_market(
                 "categories": categories,
                 "creation_date": U64(ns_to_ms(env::block_timestamp())),
                 "is_scalar": is_scalar.unwrap_or(false),
+                "enabled": market.enabled,
 			}
 		})
 		.to_string()
@@ -230,7 +231,8 @@ pub fn log_market_status(market: &Market) {
             "cap_id": format!("m_{}", market.pool.id),
 			"params": {
                 "payout_numerator": market.payout_numerator,
-                "finalized": market.finalized
+                "finalized": market.finalized,
+                "enabled": market.enabled,
 			}
 		})
 		.to_string()
