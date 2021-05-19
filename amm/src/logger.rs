@@ -192,10 +192,10 @@ pub fn log_user_balance(token: &MintableToken, account_id: &AccountId, new_balan
 // NEW_MARKET env log
 pub fn log_create_market(
     market: &Market,
-    description: String,  
-    extra_info: String,  
-    outcome_tags: Vec<String>,
-    categories: Vec<String>,
+    description: &String,  
+    extra_info: &String,  
+    outcome_tags: &Vec<String>,
+    categories: &Vec<String>,
     is_scalar: Option<bool>,
 ) {
 	env::log(

@@ -8,6 +8,7 @@ pub struct Market {
     pub pool: Pool, // Implementation that manages the liquidity pool and swap
     pub payout_numerator: Option<Vec<U128>>, // Optional Vector that dictates how payout is done. Each payout numerator index corresponds to an outcome and shares the denomination of te collateral token for this market.
     pub finalized: bool, // If true the market has an outcome, if false the market it still undecided.
+    pub enabled: bool, // If false the market is disabled for interaction.
 }
 
 #[near_bindgen]
@@ -165,6 +166,7 @@ impl AMMContract {
         let initial_storage = env::storage_usage();
         let collateral_out: u128 = collateral_out.into();
         let mut market = self.markets.get(market_id.into()).expect("ERR_NO_MARKET");
+        assert!(!market.enabled, "ERR_DISABLED_MARKET");
         assert!(!market.finalized, "ERR_FINALIZED_MARKET");
         assert!(market.end_time > ns_to_ms(env::block_timestamp()), "ERR_MARKET_ENDED");
         let escrowed = market.pool.sell(
@@ -203,6 +205,7 @@ impl AMMContract {
         let initial_storage = env::storage_usage();
 
         let mut market = self.markets.get(market_id.into()).expect("ERR_NO_MARKET");
+        assert!(!market.enabled, "ERR_DISABLED_MARKET");
         assert!(!market.finalized, "ERR_MARKET_FINALIZED");
 
         let escrowed = market.pool.burn_outcome_tokens_redeem_collateral(
@@ -244,6 +247,8 @@ impl AMMContract {
         let initial_storage = env::storage_usage();
 
         let mut market = self.markets.get(market_id.into()).expect("ERR_NO_MARKET");
+        assert!(!market.enabled, "ERR_DISABLED_MARKET");
+
         let fees_earned = market.pool.exit_pool(
             &env::predecessor_account_id(),
             total_in.into()
@@ -285,6 +290,7 @@ impl AMMContract {
         self.assert_gov();
         // let initial_storage = env::storage_usage();
         let mut market = self.markets.get(market_id.into()).expect("ERR_NO_MARKET");
+        assert!(!market.enabled, "ERR_DISABLED_MARKET");
         assert!(!market.finalized, "ERR_IS_FINALIZED");
         assert!(market.resolution_time <= ns_to_ms(env::block_timestamp()), "ERR_RESOLUTION_TIME_NOT_REACHED");
         match &payout_numerator {
@@ -316,6 +322,7 @@ impl AMMContract {
         self.assert_unpaused();
         let initial_storage = env::storage_usage();
         let mut market = self.markets.get(market_id.into()).expect("ERR_NO_MARKET");
+        assert!(!market.enabled, "ERR_DISABLED_MARKET");
         assert!(market.finalized, "ERR_NOT_FINALIZED");
 
         let payout = market.pool.payout(&env::predecessor_account_id(), &market.payout_numerator);
@@ -377,6 +384,7 @@ impl AMMContract {
         };
            
         let mut market = self.markets.get(args.market_id.into()).expect("ERR_NO_MARKET");
+        assert!(!market.enabled, "ERR_DISABLED_MARKET");
         assert!(!market.finalized, "ERR_FINALIZED_MARKET");
         assert!(market.end_time > ns_to_ms(env::block_timestamp()), "ERR_MARKET_ENDED");
         assert_collateral_token(&market.pool.collateral_token_id);
@@ -404,6 +412,7 @@ impl AMMContract {
         args: BuyArgs,
     ) -> PromiseOrValue<u8> {
         let mut market = self.markets.get(args.market_id.into()).expect("ERR_NO_MARKET");
+        assert!(!market.enabled, "ERR_DISABLED_MARKET");
         assert!(!market.finalized, "ERR_FINALIZED_MARKET");
         assert!(market.end_time > ns_to_ms(env::block_timestamp()), "ERR_MARKET_ENDED");
         assert_collateral_token(&market.pool.collateral_token_id);

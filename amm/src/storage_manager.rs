@@ -97,6 +97,7 @@ impl AMMContract {
         if env::storage_usage() >= initial_storage_usage {
             // used more storage, deduct from balance
             let difference : u128 = u128::from(env::storage_usage() - initial_storage_usage);
+            env::log(format!("sender: {}, Diff: {}, init: {}", sender_id, difference * STORAGE_PRICE_PER_BYTE, initial_user_balance).as_bytes());
             self.accounts.insert(sender_id, &(initial_user_balance - difference * STORAGE_PRICE_PER_BYTE));
         } else {
             // freed up storage, add to balance

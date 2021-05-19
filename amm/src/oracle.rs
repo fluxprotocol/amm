@@ -8,19 +8,19 @@ pub trait OracleContractExt {
 
 pub fn fetch_oracle_config(oracle_contract_id: &str) -> Promise {
     oracle_contract_ext::get_config(&oracle_contract_id, 0, 4_000_000_000_000)
-} 
+}
+
+pub struct DataRequestArgs {
+    pub settlement_time: u64,
+    pub outcomes: Option<Vec<String>>,
+    pub description: String,
+    pub tags: Vec<String>,
+}
 
 const GAS_BASE_CREATE_REQUEST: Gas = 50_000_000_000_000;
 
 impl AMMContract {
-    pub fn create_data_request(&self, bond_token: &AccountId, amount: Balance, market_args: &CreateMarketArgs) -> Promise {
-        let is_scalar = market_args.is_scalar.unwrap_or(false);
-        let outcomes: Option<Vec<String>> = if is_scalar {
-            None
-        } else {
-            Some(market_args.outcome_tags.clone())
-        };
-
+    pub fn create_data_request(&self, bond_token: &AccountId, amount: Balance, request_args: DataRequestArgs) -> Promise {
         // Should do a fungible token transfer to the oracle
         fungible_token::fungible_token_transfer_call(
             bond_token, 
@@ -30,11 +30,12 @@ impl AMMContract {
                 "NewDataRequest": {
                     // 12 hours in nano seconds
                     "challenge_period": U64(43200000000000),
-                    "settlement_time": U64(ms_to_ns(market_args.resolution_time.into())),
+                    "settlement_time": U64(request_args.settlement_time),
                     "target_contract": env::current_account_id(),
-                    "outcomes": outcomes,
+                    "outcomes": request_args.outcomes,
                     "sources": [],
-                    "description": format!("{} - {}", market_args.description, market_args.extra_info),
+                    "description": request_args.description,
+                    "tags": request_args.tags,
                 },
             }).to_string(),
             Some(GAS_BASE_CREATE_REQUEST),
