@@ -15,6 +15,7 @@ pub struct DataRequestArgs {
     pub outcomes: Option<Vec<String>>,
     pub description: String,
     pub tags: Vec<String>,
+    pub challenge_period: U64,
 }
 
 const GAS_BASE_CREATE_REQUEST: Gas = 50_000_000_000_000;
@@ -29,7 +30,7 @@ impl AMMContract {
             json!({
                 "NewDataRequest": {
                     // 12 hours in nano seconds
-                    "challenge_period": U64(43200000000000),
+                    "challenge_period": request_args.challenge_period,
                     "settlement_time": U64(request_args.settlement_time),
                     "target_contract": env::current_account_id(),
                     "outcomes": request_args.outcomes,

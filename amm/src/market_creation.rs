@@ -52,6 +52,7 @@ impl AMMContract {
             outcomes,
             settlement_time: market_args.resolution_time.into(),
             tags: vec![market_id.0.to_string()],
+            challenge_period: market_args.challenge_period,
         });
 
         // Refund the remaining tokens

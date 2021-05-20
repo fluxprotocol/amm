@@ -14,6 +14,7 @@ pub struct CreateMarketArgs {
     pub outcomes: u16, // Number of possible outcomes for the market
     pub outcome_tags: Vec<String>, // Tags describing outcomes
     pub categories: Vec<String>, // Categories for filtering and curation
+    pub challenge_period: U64,
     pub end_time: WrappedTimestamp, // Time when trading is halted
     pub resolution_time: WrappedTimestamp, // Time when resolution is possible
     pub collateral_token_id: AccountId, // `AccountId` of collateral that traded in the market
@@ -172,6 +173,7 @@ mod mock_token_basic_tests {
                 resolution_time: 1619882574000.into(), // (~1 day after end_time)
                 collateral_token_id: token(),
                 swap_fee: (10_u128.pow(24) / 50).into(), // 2%
+                challenge_period: U64(1),
                 is_scalar: false
             }
         );
@@ -205,6 +207,7 @@ mod mock_token_basic_tests {
                 resolution_time: 1619882574000.into(), // (~1 day after end_time)
                 collateral_token_id: token(),
                 swap_fee: (10_u128.pow(24) / 50).into(), // 2%
+                challenge_period: U64(1),
                 is_scalar: false
             }
         );

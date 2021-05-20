@@ -509,7 +509,8 @@ mod market_basic_tests {
                 resolution_time: 1619882574000.into(), // resolution_time (~1 day after end_time)
                 collateral_token_id: token(), // collateral_token_id
                 swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
-                is_scalar: false // is_scalar
+                challenge_period: U64(1),
+                is_scalar: false, // is_scalar,
             }
         );
     }
@@ -536,6 +537,7 @@ mod market_basic_tests {
                 resolution_time: 1619882574000.into(), // resolution_time (~1 day after end_time)
                 collateral_token_id: token(), // collateral_token_id
                 swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
+                challenge_period: U64(1),
                 is_scalar: false // is_scalar
             }
         );
@@ -576,6 +578,7 @@ mod market_basic_tests {
                 resolution_time: 1609951265965.into(), // resolution_time (~1 day after end_time)
                 collateral_token_id: token(), // collateral_token_id
                 swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
+                challenge_period: U64(1),
                 is_scalar: false // is_scalar
             }
         );
@@ -603,6 +606,7 @@ mod market_basic_tests {
                 resolution_time: 1619882574000.into(), // resolution_time (~1 day after end_time)
                 collateral_token_id: token(), // collateral_token_id
                 swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
+                challenge_period: U64(1),
                 is_scalar: false // is_scalar
             }
         );
@@ -649,6 +653,7 @@ mod market_basic_tests {
                 resolution_time: 1619882574000.into(), // resolution_time (~1 day after end_time)
                 collateral_token_id: token(), // collateral_token_id
                 swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
+                challenge_period: U64(1),
                 is_scalar: false // is_scalar
             }
         );
