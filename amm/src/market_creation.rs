@@ -40,8 +40,7 @@ impl AMMContract {
         assert_eq!(oracle_config.bond_token, bond_token, "ERR_INVALID_BOND_TOKEN");
         assert!(validity_bond <= bond_in, "ERR_NOT_ENOUGH_BOND");
 
-        let is_scalar = market_args.is_scalar.unwrap_or(false);
-        let outcomes: Option<Vec<String>> = if is_scalar {
+        let outcomes: Option<Vec<String>> = if market_args.is_scalar {
             None
         } else {
             Some(market_args.outcome_tags.clone())

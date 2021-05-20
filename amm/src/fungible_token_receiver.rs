@@ -18,7 +18,7 @@ pub struct CreateMarketArgs {
     pub resolution_time: WrappedTimestamp, // Time when resolution is possible
     pub collateral_token_id: AccountId, // `AccountId` of collateral that traded in the market
     pub swap_fee: U128, // Swap fee denominated as ration in same denomination as the collateral
-    pub is_scalar: Option<bool>, // Wether market is scalar market or not
+    pub is_scalar: bool, // Wether market is scalar market or not
 }
 
 /**
@@ -172,7 +172,7 @@ mod mock_token_basic_tests {
                 resolution_time: 1619882574000.into(), // (~1 day after end_time)
                 collateral_token_id: token(),
                 swap_fee: (10_u128.pow(24) / 50).into(), // 2%
-                is_scalar: None
+                is_scalar: false
             }
         );
 
@@ -205,7 +205,7 @@ mod mock_token_basic_tests {
                 resolution_time: 1619882574000.into(), // (~1 day after end_time)
                 collateral_token_id: token(),
                 swap_fee: (10_u128.pow(24) / 50).into(), // 2%
-                is_scalar: None
+                is_scalar: false
             }
         );
 
