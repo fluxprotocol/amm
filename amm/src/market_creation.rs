@@ -50,8 +50,8 @@ impl AMMContract {
         let create_promise = self.create_data_request(&bond_token, validity_bond, DataRequestArgs {
             description: format!("{} - {}", market_args.description, market_args.extra_info),
             outcomes,
-            settlement_time: market_args.resolution_time.into(),
-            tags: vec!["pulse".to_string()],
+            settlement_time: ms_to_ns(market_args.resolution_time.into()),
+            tags: vec!["pulse".to_string(), market_id.0.to_string()],
             sources: market_args.sources,
             challenge_period: market_args.challenge_period,
         });
