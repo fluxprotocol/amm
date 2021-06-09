@@ -47,6 +47,16 @@ pub fn assert_prev_promise_successful() {
     assert_eq!(is_promise_success(), true, "previous promise failed");
 }
 
+pub fn clamp_f64(value: f64, min: f64, max: f64) -> f64 {
+    if value > max {
+        max
+    } else if value < min {
+        min
+    } else {
+        value
+    }
+}
+
 /** 
  * @notice refunds any cleared up or overpaid storage to original sender, also checks if the sender added enough deposit to cover storage
  * @param initial_storage is the storage at the beginning of the function call

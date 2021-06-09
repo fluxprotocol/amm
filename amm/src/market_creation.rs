@@ -51,7 +51,7 @@ impl AMMContract {
             description: format!("{} - {}", market_args.description, market_args.extra_info),
             outcomes,
             settlement_time: ms_to_ns(market_args.resolution_time.into()),
-            tags: vec!["pulse".to_string(), market_id.0.to_string()],
+            tags: vec![market_id.0.to_string()],
             sources: market_args.sources,
             challenge_period: market_args.challenge_period,
         });
@@ -63,7 +63,6 @@ impl AMMContract {
                 // We trigger the proceeding last so we can check the promise for failures
                 .then(ext_self::proceed_market_enabling(market_id, &env::current_account_id(), 0, 25_000_000_000_000))
         } else {
-
             create_promise
                 .then(ext_self::proceed_market_enabling(market_id, &env::current_account_id(), 0, 25_000_000_000_000))
         }
@@ -128,9 +127,11 @@ impl AMMContract {
             finalized: false,
             // Disable this market until the oracle request has been made
             enabled: false,
+            is_scalar: payload.is_scalar,
+            outcome_tags: payload.outcome_tags.clone(),
         };
 
-        logger::log_create_market(&market, &payload.description, &payload.extra_info, &payload.outcome_tags, &payload.categories, payload.is_scalar);
+        logger::log_create_market(&market, &payload.description, &payload.extra_info, &payload.categories);
         logger::log_market_status(&market);
 
         self.markets.push(&market);

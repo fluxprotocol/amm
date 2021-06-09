@@ -66,4 +66,11 @@ impl AMMContract {
     pub fn assert_unpaused(&self) {
         assert!(!self.paused, "ERR_PROTCOL_PAUSED")
     }
+
+    /**
+     * @panics if the predecessor is not the oracle
+     */
+    pub fn assert_oracle(&self) {
+        assert_eq!(env::predecessor_account_id(), self.oracle, "ERR_NO_ORACLE_ADDRESS");
+    }
 }

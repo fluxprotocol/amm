@@ -1,5 +1,6 @@
 use crate::*;
 use near_sdk::serde_json::json;
+
 #[ext_contract]
 pub trait OracleContractExt {
     fn get_config() -> Promise;

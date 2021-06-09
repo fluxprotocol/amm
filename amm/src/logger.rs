@@ -195,9 +195,7 @@ pub fn log_create_market(
     market: &Market,
     description: &String,  
     extra_info: &String,  
-    outcome_tags: &Vec<String>,
     categories: &Vec<String>,
-    is_scalar: bool,
 ) {
 	env::log(
 		json!({
@@ -208,7 +206,7 @@ pub fn log_create_market(
                 "id": U64(market.pool.id),
                 "description": description,
                 "extra_info": extra_info,
-                "outcome_tags": outcome_tags,
+                "outcome_tags": market.outcome_tags,
                 "end_time": U64(market.end_time),
                 "resolution_time": U64(market.resolution_time),
                 "finalized": market.finalized,
@@ -216,7 +214,7 @@ pub fn log_create_market(
                 "categories": categories,
                 "creation_date": U64(ns_to_ms(env::block_timestamp())),
                 "enabled": market.enabled,
-                "is_scalar": is_scalar,
+                "is_scalar": market.is_scalar,
 			}
 		})
 		.to_string()
