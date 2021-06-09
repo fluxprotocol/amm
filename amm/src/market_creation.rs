@@ -1,7 +1,7 @@
 use crate::*;
 use near_sdk::{ PromiseResult, serde_json };
 use near_sdk::serde::{ Serialize, Deserialize };
-use crate::oracle::{ DataRequestArgs };
+use crate::oracle::{ DataRequestArgs, DataRequestDataType };
 
 #[ext_contract(ext_self)]
 trait ProtocolResolver {
@@ -46,6 +46,12 @@ impl AMMContract {
             Some(market_args.outcome_tags.clone())
         };
 
+        let data_type: DataRequestDataType = if market_args.is_scalar {
+            DataRequestDataType::Number
+        } else {
+            DataRequestDataType::String
+        };
+
         let remaining_bond: u128 = bond_in - validity_bond;
         let create_promise = self.create_data_request(&bond_token, validity_bond, DataRequestArgs {
             description: format!("{} - {}", market_args.description, market_args.extra_info),
@@ -54,6 +60,7 @@ impl AMMContract {
             tags: vec![market_id.0.to_string()],
             sources: market_args.sources,
             challenge_period: market_args.challenge_period,
+            data_type,
         });
         
         // Refund the remaining tokens
