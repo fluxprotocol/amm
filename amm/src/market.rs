@@ -10,6 +10,7 @@ pub struct Market {
     pub finalized: bool, // If true the market has an outcome, if false the market it still undecided.
     pub enabled: bool, // If false the market is disabled for interaction.
     pub is_scalar: bool, // If true the market is scalar, false for categorical
+    pub scalar_multiplier: Option<U128>, // multiplier used for float numbers
 }
 
 #[near_bindgen]
@@ -571,6 +572,7 @@ mod market_basic_tests {
                 swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
                 challenge_period: U64(1),
                 is_scalar: false, // is_scalar,
+                scalar_multiplier: None,
             }
         );
     }
@@ -599,7 +601,8 @@ mod market_basic_tests {
                 collateral_token_id: token(), // collateral_token_id
                 swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
                 challenge_period: U64(1),
-                is_scalar: false // is_scalar
+                is_scalar: false, // is_scalar
+                scalar_multiplier: None,
             }
         );
 
@@ -645,7 +648,8 @@ mod market_basic_tests {
                 collateral_token_id: token(), // collateral_token_id
                 swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
                 challenge_period: U64(1),
-                is_scalar: false // is_scalar
+                is_scalar: false, // is_scalar
+                scalar_multiplier: None,
             }
         );
     }
@@ -674,6 +678,7 @@ mod market_basic_tests {
                 swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
                 challenge_period: U64(1),
                 is_scalar: false, // is_scalar,
+                scalar_multiplier: None,
             }
         );
 
@@ -709,6 +714,7 @@ mod market_basic_tests {
                 swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
                 challenge_period: U64(1),
                 is_scalar: false, // is_scalar,
+                scalar_multiplier: None,
             }
         );
 
@@ -743,6 +749,7 @@ mod market_basic_tests {
                 swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
                 challenge_period: U64(1),
                 is_scalar: true, // is_scalar,
+                scalar_multiplier: Some(U128(1000)),
             }
         );
 
@@ -777,6 +784,7 @@ mod market_basic_tests {
                 swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
                 challenge_period: U64(1),
                 is_scalar: true, // is_scalar,
+                scalar_multiplier: Some(U128(1000)),
             }
         );
 
@@ -811,6 +819,7 @@ mod market_basic_tests {
                 swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
                 challenge_period: U64(1),
                 is_scalar: true, // is_scalar,
+                scalar_multiplier: Some(U128(1000)),
             }
         );
 
@@ -845,6 +854,7 @@ mod market_basic_tests {
                 swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
                 challenge_period: U64(1),
                 is_scalar: true, // is_scalar,
+                scalar_multiplier: Some(U128(1000)),
             }
         );
 
@@ -879,6 +889,7 @@ mod market_basic_tests {
                 swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
                 challenge_period: U64(1),
                 is_scalar: true, // is_scalar,
+                scalar_multiplier: Some(U128(1000)),
             }
         );
 
@@ -964,7 +975,8 @@ mod market_basic_tests {
                 collateral_token_id: token(), // collateral_token_id
                 swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
                 challenge_period: U64(1),
-                is_scalar: false // is_scalar
+                is_scalar: false, // is_scalar
+                scalar_multiplier: None,
             }
         );
 

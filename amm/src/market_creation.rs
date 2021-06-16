@@ -47,7 +47,7 @@ impl AMMContract {
         };
 
         let data_type: DataRequestDataType = if market_args.is_scalar {
-            DataRequestDataType::Number
+            DataRequestDataType::Number(market_args.scalar_multiplier.unwrap())
         } else {
             DataRequestDataType::String
         };
@@ -116,6 +116,10 @@ impl AMMContract {
         assert!(end_time > ns_to_ms(env::block_timestamp()), "ERR_INVALID_END_TIME");
         assert!(resolution_time >= end_time, "ERR_INVALID_RESOLUTION_TIME");
 
+        if payload.is_scalar {
+            assert!(payload.scalar_multiplier.is_some(), "ERR_NO_MULTIPLIER");
+        }
+
         let pool = pool_factory::new_pool(
             market_id,
             payload.outcomes,
@@ -136,6 +140,7 @@ impl AMMContract {
             enabled: false,
             is_scalar: payload.is_scalar,
             outcome_tags: payload.outcome_tags.clone(),
+            scalar_multiplier: payload.scalar_multiplier,
         };
 
         logger::log_create_market(&market, &payload.description, &payload.extra_info, &payload.categories);

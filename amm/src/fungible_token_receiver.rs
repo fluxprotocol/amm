@@ -17,6 +17,7 @@ pub struct CreateMarketArgs {
     pub collateral_token_id: AccountId, // `AccountId` of collateral that traded in the market
     pub swap_fee: U128, // Swap fee denominated as ration in same denomination as the collateral
     pub is_scalar: bool, // Wether market is scalar market or not
+    pub scalar_multiplier: Option<U128>, // Multiplier for floating numbers
 }
 
 /**
@@ -172,7 +173,8 @@ mod mock_token_basic_tests {
                 collateral_token_id: token(),
                 swap_fee: (10_u128.pow(24) / 50).into(), // 2%
                 challenge_period: U64(1),
-                is_scalar: false
+                is_scalar: false,
+                scalar_multiplier: None,
             }
         );
 
@@ -212,7 +214,8 @@ mod mock_token_basic_tests {
                 collateral_token_id: token(),
                 swap_fee: (10_u128.pow(24) / 50).into(), // 2%
                 challenge_period: U64(1),
-                is_scalar: false
+                is_scalar: false,
+                scalar_multiplier: None,
             }
         );
 
