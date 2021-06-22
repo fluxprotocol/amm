@@ -1,4 +1,5 @@
 use crate::*;
+use crate::market::OutcomeTag;
 use near_sdk::PromiseResult;
 const STORAGE_PRICE_PER_BYTE: Balance = 100_000_000_000_000_000_000;
 
@@ -55,6 +56,15 @@ pub fn clamp_u128(value: u128, min: u128, max: u128) -> u128 {
     } else {
         value
     }
+}
+
+pub fn flatten_outcome_tags(outcome_tags: &Vec<OutcomeTag>) -> Vec<String> {
+    outcome_tags.iter().map(|tag| {
+        match tag {
+            OutcomeTag::String(value) => value.to_string(),
+            OutcomeTag::Number(num) => num.value.0.to_string(),
+        }
+    }).collect()
 }
 
 /** 

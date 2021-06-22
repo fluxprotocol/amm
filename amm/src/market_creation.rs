@@ -2,6 +2,8 @@ use crate::*;
 use near_sdk::{ PromiseResult, serde_json };
 use near_sdk::serde::{ Serialize, Deserialize };
 use crate::oracle::{ DataRequestArgs, DataRequestDataType };
+use crate::market::OutcomeTag;
+use crate::helper::flatten_outcome_tags;
 
 #[ext_contract(ext_self)]
 trait ProtocolResolver {
@@ -43,7 +45,7 @@ impl AMMContract {
         let outcomes: Option<Vec<String>> = if market_args.is_scalar {
             None
         } else {
-            Some(market_args.outcome_tags.clone())
+            Some(flatten_outcome_tags(&market_args.outcome_tags))
         };
 
         let data_type: DataRequestDataType = if market_args.is_scalar {
@@ -118,10 +120,15 @@ impl AMMContract {
 
         if payload.is_scalar {
             assert!(payload.scalar_multiplier.is_some(), "ERR_NO_MULTIPLIER");
+            assert!(payload.outcome_tags.len() == 2, "ERR_MAX_2_OUTCOMES");
 
-            // Check if values in the scalar market are both u128
-            payload.outcome_tags.get(0).unwrap().parse::<u128>().expect("ERR_OUTCOME_TAG_NOT_U128");
-            payload.outcome_tags.get(1).unwrap().parse::<u128>().expect("ERR_OUTCOME_TAG_NOT_U128");
+            // Check if all the values are numbers, otherwise setting the result would fail
+            for tag in payload.outcome_tags.iter() {
+                match tag {
+                    OutcomeTag::Number(_) => (),
+                    _ => panic!("ERR_NON_NUMBER"),
+                }
+            }
         }
 
         let pool = pool_factory::new_pool(

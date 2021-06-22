@@ -1,4 +1,5 @@
 use crate::*;
+use crate::market::OutcomeTag;
 
 /**
  * @notice `create_market` args
@@ -8,7 +9,7 @@ pub struct CreateMarketArgs {
     pub description: String, // Description of market
     pub extra_info: String, // Details that help with market resolution
     pub outcomes: u16, // Number of possible outcomes for the market
-    pub outcome_tags: Vec<String>, // Tags describing outcomes
+    pub outcome_tags: Vec<OutcomeTag>, // Tags describing outcomes
     pub categories: Vec<String>, // Categories for filtering and curation
     pub sources: Vec<Source>,
     pub challenge_period: U64,
@@ -125,6 +126,14 @@ mod mock_token_basic_tests {
         tags
     }
 
+    fn empty_string_outcomes(len: u16) -> Vec<OutcomeTag> {
+        let mut tags: Vec<OutcomeTag> = vec![];
+        for _i in 0..len {
+            tags.push(OutcomeTag::String(empty_string()));
+        }
+        tags
+    }
+
     fn to_valid(account: AccountId) -> ValidAccountId {
         account.try_into().expect("invalid account")
     }
@@ -166,7 +175,7 @@ mod mock_token_basic_tests {
                 extra_info: empty_string(),
                 outcomes: 2,
                 sources: vec![Source{end_point: "test".to_string(), source_path: "test".to_string()}],
-                outcome_tags: empty_string_vec(2),
+                outcome_tags: empty_string_outcomes(2),
                 categories: empty_string_vec(2),
                 end_time: 1609951265967.into(),
                 resolution_time: 1619882574000.into(), // (~1 day after end_time)
@@ -206,7 +215,7 @@ mod mock_token_basic_tests {
                 description: empty_string(),
                 extra_info: empty_string(),
                 outcomes: 2,
-                outcome_tags: empty_string_vec(2),
+                outcome_tags: empty_string_outcomes(2),
                 categories: empty_string_vec(2),
                 end_time: 1609951265967.into(),
                 sources: vec![Source{end_point: "test".to_string(), source_path: "test".to_string()}],
