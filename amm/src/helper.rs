@@ -47,7 +47,7 @@ pub fn assert_prev_promise_successful() {
     assert_eq!(is_promise_success(), true, "previous promise failed");
 }
 
-pub fn clamp_f64(value: f64, min: f64, max: f64) -> f64 {
+pub fn clamp_u128(value: u128, min: u128, max: u128) -> u128 {
     if value > max {
         max
     } else if value < min {

@@ -45,7 +45,7 @@ impl AMMContract {
                     "sources": request_args.sources,
                     "description": request_args.description,
                     "tags": request_args.tags,
-                    // "data_type": request_args.data_type,
+                    "data_type": request_args.data_type,
                 },
             }).to_string(),
             Some(GAS_BASE_CREATE_REQUEST),

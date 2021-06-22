@@ -118,6 +118,10 @@ impl AMMContract {
 
         if payload.is_scalar {
             assert!(payload.scalar_multiplier.is_some(), "ERR_NO_MULTIPLIER");
+
+            // Check if values in the scalar market are both u128
+            payload.outcome_tags.get(0).unwrap().parse::<u128>().expect("ERR_OUTCOME_TAG_NOT_U128");
+            payload.outcome_tags.get(1).unwrap().parse::<u128>().expect("ERR_OUTCOME_TAG_NOT_U128");
         }
 
         let pool = pool_factory::new_pool(
