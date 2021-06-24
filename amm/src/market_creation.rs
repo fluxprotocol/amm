@@ -136,6 +136,10 @@ impl AMMContract {
             let lower_bound: u128 = lower_bound_tag.value.into();
             let upper_bound: u128 = upper_bound_tag.value.into();
 
+            assert!(!(lower_bound_tag.negative && lower_bound == 0), "ERR_NEGATIVE_ZERO");
+            assert!(!(upper_bound_tag.negative && upper_bound == 0), "ERR_NEGATIVE_ZERO");
+
+            // Make sure no negative zeros are used
             if !lower_bound_tag.negative && !upper_bound_tag.negative {
                 assert!(lower_bound < upper_bound, "ERR_WRONG_BOUNDS");
             } else if !lower_bound_tag.negative && upper_bound_tag.negative {
@@ -286,6 +290,76 @@ mod market_basic_tests {
                 description: empty_string(), // market description
                 extra_info: empty_string(), // extra info
                 outcomes: 3, // outcomes
+                outcome_tags: tags, // outcome tags
+                categories: empty_string_vec(2), // categories
+                end_time: 1609951265967.into(), // end_time
+                resolution_time: 1619882574000.into(), // resolution_time (~1 day after end_time)
+                sources: vec![Source{end_point: "test".to_string(), source_path: "test".to_string()}],
+                collateral_token_id: token(), // collateral_token_id
+                swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
+                challenge_period: U64(1),
+                is_scalar: true, // is_scalar,
+                scalar_multiplier: Some(U128(1)),
+            }
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "ERR_NEGATIVE_ZERO")]
+    fn market_negative_zero_upper_bound() {
+        testing_env!(get_context(alice(), 0));
+
+        let mut contract = AMMContract::init(
+            bob().try_into().unwrap(),
+            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}],
+            oracle().try_into().unwrap()
+        );
+
+        let tags = vec![
+            OutcomeTag::Number(NumberOutcomeTag { value: U128(1), multiplier: U128(1), negative: true }),
+            OutcomeTag::Number(NumberOutcomeTag { value: U128(0), multiplier: U128(1), negative: true }),
+        ];
+
+        contract.create_market(
+            &CreateMarketArgs {
+                description: empty_string(), // market description
+                extra_info: empty_string(), // extra info
+                outcomes: 2, // outcomes
+                outcome_tags: tags, // outcome tags
+                categories: empty_string_vec(2), // categories
+                end_time: 1609951265967.into(), // end_time
+                resolution_time: 1619882574000.into(), // resolution_time (~1 day after end_time)
+                sources: vec![Source{end_point: "test".to_string(), source_path: "test".to_string()}],
+                collateral_token_id: token(), // collateral_token_id
+                swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
+                challenge_period: U64(1),
+                is_scalar: true, // is_scalar,
+                scalar_multiplier: Some(U128(1)),
+            }
+        );
+    }
+
+    #[test]
+    #[should_panic(expected = "ERR_NEGATIVE_ZERO")]
+    fn market_negative_zero_lower_bound() {
+        testing_env!(get_context(alice(), 0));
+
+        let mut contract = AMMContract::init(
+            bob().try_into().unwrap(),
+            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}],
+            oracle().try_into().unwrap()
+        );
+
+        let tags = vec![
+            OutcomeTag::Number(NumberOutcomeTag { value: U128(0), multiplier: U128(1), negative: true }),
+            OutcomeTag::Number(NumberOutcomeTag { value: U128(10), multiplier: U128(1), negative: false }),
+        ];
+
+        contract.create_market(
+            &CreateMarketArgs {
+                description: empty_string(), // market description
+                extra_info: empty_string(), // extra info
+                outcomes: 2, // outcomes
                 outcome_tags: tags, // outcome tags
                 categories: empty_string_vec(2), // categories
                 end_time: 1609951265967.into(), // end_time

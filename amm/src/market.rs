@@ -1356,6 +1356,52 @@ mod market_basic_tests {
         assert_eq!(market.payout_numerator, Some(vec![U128(1000000000000000000000000), U128(0)]), "Numerator should be set");
     }
 
+    #[test]
+    fn positive_scalar_outcome_with_negative_bounds() {
+        testing_env!(get_context(oracle(), 0));
+
+        let mut contract = AMMContract::init(
+            bob().try_into().unwrap(),
+            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}],
+            oracle().try_into().unwrap()
+        );
+
+        let tags = vec![
+            OutcomeTag::Number(NumberOutcomeTag { value: U128(50), multiplier: U128(1), negative: true }),
+            OutcomeTag::Number(NumberOutcomeTag { value: U128(1), multiplier: U128(1), negative: true })
+        ];
+        
+        contract.create_market(
+            &CreateMarketArgs {
+                description: empty_string(), // market description
+                extra_info: empty_string(), // extra info
+                outcomes: 2, // outcomes
+                outcome_tags: tags, // outcome tags
+                categories: empty_string_vec(2), // categories
+                end_time: 1609951265967.into(), // end_time
+                resolution_time: 1619882574000.into(), // resolution_time (~1 day after end_time)
+                sources: vec![Source{end_point: "test".to_string(), source_path: "test".to_string()}],
+                collateral_token_id: token(), // collateral_token_id
+                swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
+                challenge_period: U64(1),
+                is_scalar: true, // is_scalar,
+                scalar_multiplier: Some(U128(1)),
+            }
+        );
+
+        let answer_number = AnswerNumberType {
+            multiplier: U128(1),
+            negative: false,
+            value: U128(49),
+        };
+
+        contract.set_outcome(alice(), Outcome::Answer(AnswerType::Number(answer_number)), Some(vec![U64(0)]));
+
+        let market = contract.get_market_expect(U64(0));
+        assert!(market.finalized, "Market should be finalized");
+        assert_eq!(market.payout_numerator, Some(vec![U128(0), U128(1000000000000000000000000)]), "Numerator should be set");
+    }
+
     // TODO: should be changed with oracle integration
     // #[test]
     // #[should_panic(expected = "ERR_RESOLUTION_TIME_NOT_REACHED")]
