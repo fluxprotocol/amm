@@ -397,6 +397,9 @@ impl AMMContract {
                         }
                         
                         lower_bound = 0;
+                    } else if answer_info.negative && !lower_bound_tag.negative {
+                        // Only positive numbers are in our bounds, full payout for the lower bound
+                        answer_value = lower_bound;
                     }
 
                     let pointer_value = clamp_u128(answer_value, lower_bound, upper_bound);
@@ -1305,6 +1308,52 @@ mod market_basic_tests {
         let market = contract.get_market_expect(U64(0));
         assert!(market.finalized, "Market should be finalized");
         assert_eq!(market.payout_numerator, Some(vec![U128(0), U128(1000000000000000000000000)]), "Numerator should be set");
+    }
+
+    #[test]
+    fn negative_scalar_outcome_with_positive_bounds() {
+        testing_env!(get_context(oracle(), 0));
+
+        let mut contract = AMMContract::init(
+            bob().try_into().unwrap(),
+            vec![collateral_whitelist::Token{account_id: token(), decimals: 24}],
+            oracle().try_into().unwrap()
+        );
+
+        let tags = vec![
+            OutcomeTag::Number(NumberOutcomeTag { value: U128(0), multiplier: U128(1), negative: false }),
+            OutcomeTag::Number(NumberOutcomeTag { value: U128(50), multiplier: U128(1), negative: false })
+        ];
+        
+        contract.create_market(
+            &CreateMarketArgs {
+                description: empty_string(), // market description
+                extra_info: empty_string(), // extra info
+                outcomes: 2, // outcomes
+                outcome_tags: tags, // outcome tags
+                categories: empty_string_vec(2), // categories
+                end_time: 1609951265967.into(), // end_time
+                resolution_time: 1619882574000.into(), // resolution_time (~1 day after end_time)
+                sources: vec![Source{end_point: "test".to_string(), source_path: "test".to_string()}],
+                collateral_token_id: token(), // collateral_token_id
+                swap_fee: (10_u128.pow(24) / 50).into(), // swap fee, 2%
+                challenge_period: U64(1),
+                is_scalar: true, // is_scalar,
+                scalar_multiplier: Some(U128(1)),
+            }
+        );
+
+        let answer_number = AnswerNumberType {
+            multiplier: U128(1),
+            negative: true,
+            value: U128(55),
+        };
+
+        contract.set_outcome(alice(), Outcome::Answer(AnswerType::Number(answer_number)), Some(vec![U64(0)]));
+
+        let market = contract.get_market_expect(U64(0));
+        assert!(market.finalized, "Market should be finalized");
+        assert_eq!(market.payout_numerator, Some(vec![U128(1000000000000000000000000), U128(0)]), "Numerator should be set");
     }
 
     // TODO: should be changed with oracle integration
