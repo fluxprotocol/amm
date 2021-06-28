@@ -48,6 +48,10 @@ pub fn assert_prev_promise_successful() {
     assert_eq!(is_promise_success(), true, "previous promise failed");
 }
 
+/**
+ * @notice clamps a value between the min and max
+ * @returns value if in range. max/min when out of range
+ */
 pub fn clamp_u128(value: u128, min: u128, max: u128) -> u128 {
     if value > max {
         max
