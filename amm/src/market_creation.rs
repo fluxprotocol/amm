@@ -80,6 +80,17 @@ impl AMMContract {
     pub fn proceed_market_enabling(&mut self, market_id: U64) {
         assert_self();
         assert_prev_promise_successful();
+
+        match env::promise_result(0) {
+            PromiseResult::NotReady => unreachable!(),
+            PromiseResult::Successful(value) => {
+                match serde_json::from_slice::<U128>(&value) {
+                    Ok(value) => assert_ne!(value.0, 0, "ERR_DATA_REQUEST_FAILED"),
+                    Err(_e) => panic!("ERR_DATA_REQUEST_FAILED"),
+                }
+            },
+            PromiseResult::Failed => panic!("ERR_DATA_REQUEST_FAILED"),
+        };
         
         let mut market = self.get_market_expect(market_id);
         market.enabled = true;
