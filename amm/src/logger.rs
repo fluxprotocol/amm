@@ -215,6 +215,7 @@ pub fn log_create_market(
                 "creation_date": U64(ns_to_ms(env::block_timestamp())),
                 "enabled": market.enabled,
                 "is_scalar": market.is_scalar,
+                "scalar_multiplier": market.scalar_multiplier,
 			}
 		})
 		.to_string()

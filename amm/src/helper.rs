@@ -1,4 +1,5 @@
 use crate::*;
+use crate::market::OutcomeTag;
 use near_sdk::PromiseResult;
 const STORAGE_PRICE_PER_BYTE: Balance = 100_000_000_000_000_000_000;
 
@@ -47,7 +48,11 @@ pub fn assert_prev_promise_successful() {
     assert_eq!(is_promise_success(), true, "previous promise failed");
 }
 
-pub fn clamp_f64(value: f64, min: f64, max: f64) -> f64 {
+/**
+ * @notice clamps a value between the min and max
+ * @returns value if in range. max/min when out of range
+ */
+pub fn clamp_u128(value: u128, min: u128, max: u128) -> u128 {
     if value > max {
         max
     } else if value < min {
@@ -55,6 +60,15 @@ pub fn clamp_f64(value: f64, min: f64, max: f64) -> f64 {
     } else {
         value
     }
+}
+
+pub fn flatten_outcome_tags(outcome_tags: &Vec<OutcomeTag>) -> Vec<String> {
+    outcome_tags.iter().map(|tag| {
+        match tag {
+            OutcomeTag::String(value) => value.to_string(),
+            OutcomeTag::Number(num) => num.value.0.to_string(),
+        }
+    }).collect()
 }
 
 /** 

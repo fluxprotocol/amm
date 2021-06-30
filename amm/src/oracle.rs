@@ -10,9 +10,9 @@ pub fn fetch_oracle_config(oracle_contract_id: &str) -> Promise {
     oracle_contract_ext::get_config(&oracle_contract_id, 0, 4_000_000_000_000)
 }
 
-#[derive(Deserialize, Serialize)]
+#[derive(Deserialize, Serialize, BorshDeserialize, BorshSerialize)]
 pub enum DataRequestDataType {
-    Number,
+    Number(U128),
     String,
 }
 
@@ -24,6 +24,7 @@ pub struct DataRequestArgs {
     pub sources: Vec<Source>,
     pub challenge_period: U64,
     pub data_type: DataRequestDataType,
+    pub creator: AccountId,
 }
 
 const GAS_BASE_CREATE_REQUEST: Gas = 50_000_000_000_000;
@@ -46,6 +47,7 @@ impl AMMContract {
                     "description": request_args.description,
                     "tags": request_args.tags,
                     "data_type": request_args.data_type,
+                    "creator": request_args.creator,
                 },
             }).to_string(),
             Some(GAS_BASE_CREATE_REQUEST),
