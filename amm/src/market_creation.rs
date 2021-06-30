@@ -63,6 +63,7 @@ impl AMMContract {
             sources: market_args.sources,
             challenge_period: market_args.challenge_period,
             data_type,
+            creator: sender.to_string(),
         });
         
         // Refund the remaining tokens
